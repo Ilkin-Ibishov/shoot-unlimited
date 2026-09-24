@@ -132,7 +132,7 @@ const UI = {
   settings() {
     const s = save.set, st = save.stats, tg = (k, label, on) => `<button class="btn tg${on ? ' on' : ''}" data-tg="${k}">${label}: ${on ? 'ON' : 'OFF'}</button>`;
     this.open(`<h2>SETTINGS</h2><div class="grid">
-      ${tg('sfx', 'SOUND', s.sfx)}${tg('shake', 'SCREEN SHAKE', s.shake)}${tg('auto', 'AUTO-FIRE', s.auto)}${tg('blood', 'BLOOD', s.blood)}
+      ${tg('sfx', 'SOUND', s.sfx)}${tg('music', 'MUSIC', s.music)}${tg('shake', 'SCREEN SHAKE', s.shake)}${tg('auto', 'AUTO-FIRE', s.auto)}${tg('blood', 'BLOOD', s.blood)}
       <button class="btn tg${s.gfx === 'high' ? ' on' : ''}" data-gfx>GRAPHICS: ${s.gfx === 'high' ? 'HIGH' : 'LOW'}</button>
       <button class="btn tg on" data-aim>TOUCH AIM: ${s.aim === 'swipe' ? 'SWIPE' : 'POINT'}</button></div>
       <label class="sens">SWIPE SENSITIVITY <input type="range" id="sens" min="0.4" max="2.2" step="0.1" value="${s.sens}"></label>
@@ -140,7 +140,7 @@ const UI = {
       <p class="muted">Desktop: mouse aims · hold click to fire · R reload · G grenade · SPACE bullet time · P pause</p>
       <div class="row"><button class="btn danger" data-reset>RESET PROGRESS</button><button class="btn" data-close>CLOSE</button></div>`, e => {
       const b = e.target.closest('button'); if (!b) return;
-      if (b.dataset.tg) { s[b.dataset.tg] = !s[b.dataset.tg]; Sfx.on = s.sfx && !Platform.mute; }
+      if (b.dataset.tg) { s[b.dataset.tg] = !s[b.dataset.tg]; Sfx.on = s.sfx && !Platform.mute; Music.on = s.music && !Platform.mute; }
       else if ('gfx' in b.dataset) { s.gfx = s.gfx === 'high' ? 'low' : 'high'; GFX_LOW = s.gfx === 'low'; resize(); }
       else if ('aim' in b.dataset) s.aim = s.aim === 'swipe' ? 'point' : 'swipe';
       else if ('reset' in b.dataset) {

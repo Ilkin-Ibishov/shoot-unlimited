@@ -17,7 +17,7 @@ function resize() {
 const SAVE_KEY = 'shoot-unlimited-v1';
 function readSave(raw) {
   const d = { coins: 0, up: {}, owned: ['pistol'], eq: 'pistol', unlocked: 1, best: [], endless: 0,
-    set: { sfx: true, shake: true, auto: true, aim: 'swipe', sens: 1, gfx: 'high', blood: true }, stats: { runs: 0, kills: 0, deaths: 0, heads: 0 } };
+    set: { sfx: true, shake: true, auto: true, aim: 'swipe', sens: 1, gfx: 'high', blood: true, music: true }, stats: { runs: 0, kills: 0, deaths: 0, heads: 0 } };
   try { const s = JSON.parse(raw); if (s) return { ...d, ...s, set: { ...d.set, ...s.set }, stats: { ...d.stats, ...s.stats } }; } catch (e) { }
   return d;
 }
@@ -151,6 +151,10 @@ function startRun(endless) {
   G.state = 'play'; UI.startHud();
   nextWave();
 }
+// first-runs control tips, shown under the wave banner
+const TOUCH = matchMedia('(pointer:coarse)').matches;
+const HINTS = TOUCH ? ['Swipe up/down to aim', 'Aim for the head: bonus damage', 'Grenade & slow-mo buttons on the right']
+  : ['Mouse to aim · hold click to fire', 'Aim for the head: bonus damage', 'G grenade · SPACE slow-mo · R reload'];
 function weighted(pool) {
   let t = 0; for (const k of pool) t += ARCH[k].w;
   let x = Math.random() * t; for (const k of pool) { x -= ARCH[k].w; if (x <= 0) return k; }
@@ -172,7 +176,7 @@ function nextWave() {
   if (boss) r.queue.splice(1, 0, 'boss');
   r.size = r.queue.length; r.killedW = 0; r.spawnT = 1.2; r.state = 'fight'; r.crateT = rand(6, 10);
   if (r.endless && w > 0 && w % 5 === 0) UI.banner('TIME RIFT', era.name + ' · ' + era.year);
-  else UI.banner(boss ? 'BOSS' : 'WAVE ' + (w + 1), boss ? era.foes.boss.name : r.endless ? era.name : '');
+  else UI.banner(boss ? 'BOSS' : 'WAVE ' + (w + 1), boss ? era.foes.boss.name : r.endless ? era.name : save.stats.runs <= 2 && HINTS[w] || '');
   placeCrates(player.x + 260, cam.x + viewW - 60);
 }
 function updateSpawns(dt) {
@@ -715,6 +719,7 @@ function frame(now) {
   const rdt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   step(rdt);
   Platform.gameplay(G.state === 'play');
+  Music.set(era.bg, G.state !== 'play' ? 0 : run && run.boss ? 2 : 1);
   render();
   UI.tick();
 }
@@ -766,13 +771,16 @@ addEventListener('keydown', e => {
   } else if (G.state === 'pause' && (k === 'escape' || k === 'p')) { UI.close(); resume(); }
   else if (G.state === 'menu' && k === 'enter' && G.era < save.unlocked) startRun(false);
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); persist(); } });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { pause(); persist(); Sfx.ac?.suspend(); } // no music from a background tab
+  else if (!Platform.inAd) Sfx.ac?.resume();
+});
 
 async function boot() {
   await Platform.init(raw => { if (raw) Object.assign(save, readSave(raw)); }); // cloud save wins on CrazyGames
   G.era = Math.min(save.unlocked, ERAS.length) - 1;
   resize(); addEventListener('resize', resize);
-  Sfx.on = save.set.sfx && !Platform.mute; GFX_LOW = save.set.gfx === 'low';
+  Sfx.on = save.set.sfx && !Platform.mute; Music.on = save.set.music && !Platform.mute; GFX_LOW = save.set.gfx === 'low';
   setupWorld(G.era); spawnDummies(); wep = computeWeapon();
   UI.init();
   requestAnimationFrame(t => { last = t; frame(t); });

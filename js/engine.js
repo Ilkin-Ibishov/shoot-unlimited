@@ -67,6 +67,7 @@ const Sfx = {
     const b = a.createBuffer(1, a.sampleRate, a.sampleRate), d = b.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     this.nb = b;
+    Music.start();
   },
   noise(t, dur, f, type, q, vol) {
     const a = this.ac, s = a.createBufferSource(), fl = a.createBiquadFilter(), g = a.createGain();
@@ -110,6 +111,69 @@ const Sfx = {
       case 'slow':    this.tone(t, .5, 500, 120, 'sine', .3); break;
       case 'die':     this.tone(t, .9, 320, 50, 'sawtooth', .3); break;
     }
+  },
+};
+
+// ===== procedural music: a 16-step sequencer per era (key, mode, tempo, lead timbre) =====
+// lvl 0 = menu/pause (pad + slow arp), 1 = fight (drums, bass, arp, melody), 2 = boss (busier drums)
+const MUSIC = {
+  city:   { root: 45, sc: [0, 2, 3, 5, 7, 8, 10], bpm: 112, lead: 'square',   prog: [0, 5, 3, 4] }, // A minor
+  jungle: { root: 43, sc: [0, 2, 3, 5, 7, 9, 10], bpm: 100, lead: 'triangle', prog: [0, 3, 0, 6] }, // G dorian
+  castle: { root: 50, sc: [0, 2, 3, 5, 7, 8, 11], bpm: 96,  lead: 'sawtooth', prog: [0, 5, 6, 4] }, // D harmonic minor
+  desert: { root: 47, sc: [0, 1, 4, 5, 7, 8, 10], bpm: 104, lead: 'sawtooth', prog: [0, 1, 0, 6] }, // B phrygian dominant
+  west:   { root: 45, sc: [0, 2, 3, 5, 7, 8, 10], bpm: 118, lead: 'triangle', prog: [0, 3, 6, 4] },
+  sea:    { root: 48, sc: [0, 2, 4, 5, 7, 9, 10], bpm: 108, lead: 'square',   prog: [0, 6, 3, 4] }, // C mixolydian
+  future: { root: 44, sc: [0, 2, 3, 5, 7, 8, 10], bpm: 124, lead: 'sawtooth', prog: [0, 5, 2, 6] },
+};
+const ARP = [0, 2, 4, 2, 7, 4, 2, 4], MEL = [0, 2, 4, 5, 4, 2, 1, 0], MEL_STEPS = [0, 3, 6, 10, 12];
+const Music = {
+  on: true, key: 'city', lvl: 0, g: null, i: 0, t: 0,
+  set(key, lvl) { if (MUSIC[key]) this.key = key; this.lvl = lvl; },
+  start() {
+    const a = Sfx.ac; if (!a || this.g) return;
+    this.g = a.createGain(); this.g.gain.value = 0.16; this.g.connect(a.destination);
+    this.t = a.currentTime + 0.1;
+    setInterval(() => this.tick(), 50);
+  },
+  // schedule 16ths slightly ahead of the audio clock (setInterval jitter never reaches the beat)
+  tick() {
+    const a = Sfx.ac;
+    if (a.state !== 'running' || this.t < a.currentTime) this.t = a.currentTime + 0.05; // suspended or fell behind
+    while (this.t < a.currentTime + 0.25) { if (this.on) this.beat(this.t, this.i); this.t += 15 / MUSIC[this.key].bpm; this.i++; }
+  },
+  beat(t, i) {
+    const m = MUSIC[this.key], s = i % 16, bar = i >> 4, L = this.lvl, d = 15 / m.bpm, deg = m.prog[bar % 4];
+    const N = (k, o) => m.root + 12 * o + m.sc[(deg + k) % 7] + 12 * Math.floor((deg + k) / 7);
+    if (s === 0) for (const k of [0, 2, 4]) this.note(t, d * 16, N(k, 1), 'triangle', 0.035, 1200, 0.3); // pad
+    if (L === 0) {
+      if (s === 0) this.note(t, d * 16, N(0, 0), 'sine', 0.2, 400, 0.05);
+      if (s % 4 === 0) this.note(t, d * 3, N(ARP[s / 4 + (bar & 1) * 4], 2), 'triangle', 0.04, 1800);
+      return;
+    }
+    if (s % 4 === 0 || (L === 2 && s === 10)) this.drum(t, 'k');
+    if (s === 4 || s === 12) this.drum(t, 's');
+    if (L === 2 || s % 2 === 1) this.drum(t, 'h');
+    if ([0, 3, 6, 8, 11, 14].includes(s)) this.note(t, d * 2, N(0, 0), 'sawtooth', 0.12, 500);
+    if (s % 2 === 0) this.note(t, d * 1.6, N(ARP[s / 2], 2), m.lead, 0.03, 2400);
+    if (bar % 8 >= 4 && MEL_STEPS.includes(s)) this.note(t, d * 3, N(MEL[(s + bar * 3) % 8], 3), m.lead, 0.035, 3000, 0.02);
+  },
+  note(t, dur, midi, type, vol, cut, atk = 0.005) {
+    const a = Sfx.ac, o = a.createOscillator(), f = a.createBiquadFilter(), g = a.createGain();
+    o.type = type; o.frequency.value = 440 * 2 ** ((midi - 69) / 12); f.frequency.value = cut;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + atk); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f).connect(g).connect(this.g); o.start(t); o.stop(t + dur + 0.05);
+  },
+  drum(t, k) {
+    const a = Sfx.ac, g = a.createGain();
+    if (k === 'k') {
+      const o = a.createOscillator(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+      g.gain.setValueAtTime(0.7, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      o.connect(g).connect(this.g); o.start(t); o.stop(t + 0.2); return;
+    }
+    const s = a.createBufferSource(), f = a.createBiquadFilter(), hat = k === 'h', dur = hat ? 0.04 : 0.12;
+    s.buffer = Sfx.nb; f.type = hat ? 'highpass' : 'bandpass'; f.frequency.value = hat ? 7000 : 1800;
+    g.gain.setValueAtTime(hat ? 0.12 : 0.35, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    s.connect(f).connect(g).connect(this.g); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
   },
 };
 

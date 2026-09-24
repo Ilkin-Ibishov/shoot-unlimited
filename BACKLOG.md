@@ -98,16 +98,18 @@
 - 2–3 nəfər oynasın. Qeyd et: harada ilişirlər, nə alırlar, harada oyunu buraxırlar. Sonra `BAL`-ı buna görə düzəlt.
 
 ## 4. Oyunçunu saxlamaq
-- İlk girişdə qısa təlimat: nişan, təpik, qumbara.
+- [x] İlk 2 raundda dalğa bannerinin altında idarəetmə ipucuları (toxunuş/siçan üçün ayrı-ayrı).
+- [ ] Daha tam təlimat lazım olsa: Basic Launch-da oyunçuların ilk raundda nə qədər tez öldüyünə bax.
 - Gündəlik tapşırıqlar və nailiyyətlər (1.6 ilə birgə).
 - Qəhrəman üçün geyim/papaq seçimi: prosedur çəkilir, ucuz başa gəlir. 💎 ilə kosmetika satmaq olar.
 
 ## 5. Səs
-- Hər eraya qısa, dövri fon musiqisi.
+- [x] Proqramla yaradılan fon musiqisi (`Music` modulu, `js/engine.js`). Hər eranın öz tonu, tempi və tembri var. Menyuda sakit, döyüşdə tam, boss-da daha gərgin çalır. Ayarlarda MUSIC ON/OFF.
+- [ ] Səs səviyyəsi üçün slayder (SFX/MUSIC ayrı), əgər oyunçular istəsə.
 
 ## 6. Texniki sığorta
-- Yaddaşın ixracı/idxalı (hazırda yalnız `localStorage`).
-- GitHub Actions: hər push-da `tools/check.js` və qısa sim.
+- Yaddaşın ixracı/idxalı. CrazyGames-də artıq lazım deyil: orada yaddaş SDK buludunda saxlanır. Yalnız GitHub Pages/PWA üçün qalır.
+- [x] GitHub Actions: hər push-da `tools/check.js` və qısa sim (`.github/workflows/check.yml`).
 
 ## Hələlik lazım deyil
 - Onlayn liderlər cədvəli (server lazımdır, oyunçu bazası yoxdur).
