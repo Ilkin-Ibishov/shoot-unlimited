@@ -1,0 +1,11 @@
+{
+  "name": "Shoot Unlimited",
+  "short_name": "Shoot∞",
+  "description": "Shoot. Die. Upgrade. Repeat — across time.",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#10141f",
+  "theme_color": "#10141f",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
