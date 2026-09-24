@@ -269,6 +269,7 @@ function toCss(x, y) { const z = cam.z, [fx, fy] = focus(); return [((x - cam.x)
 
 // ===== render =====
 function render() {
+  if (!VIG) return; // no real size yet (iframe/tab loaded hidden); resize() fills this in
   const c = ctx;
   c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
   if (!G.sky) { G.sky = c.createLinearGradient(0, 0, 0, cvs.height); G.sky.addColorStop(0, era.sky[0]); G.sky.addColorStop(1, era.sky[1]); }

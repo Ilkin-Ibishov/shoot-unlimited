@@ -1,6 +1,6 @@
 // Offline support: network first, cache fallback.
-const CACHE = 'shoot-unlimited-v3';
-const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'js/data.js', 'js/engine.js', 'js/game.js', 'js/render.js', 'js/ui.js'];
+const CACHE = 'shoot-unlimited-v4';
+const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'js/data.js', 'js/engine.js', 'js/platform.js', 'js/game.js', 'js/render.js', 'js/ui.js'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {

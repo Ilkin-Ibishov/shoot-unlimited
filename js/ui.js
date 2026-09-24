@@ -5,7 +5,7 @@ const $ = id => document.getElementById(id);
 const coinIc = '<span class="coin"></span>';
 function tap() { Sfx.init(); Sfx.play('click'); }
 function goFull() {
-  if (!matchMedia('(pointer:coarse)').matches) return;
+  if (Platform.sdk || !matchMedia('(pointer:coarse)').matches) return; // portals own fullscreen
   const d = document.documentElement;
   (d.requestFullscreen ? d.requestFullscreen() : Promise.resolve()).then(() => screen.orientation?.lock?.('landscape')).catch(() => { });
 }
@@ -132,7 +132,7 @@ const UI = {
   settings() {
     const s = save.set, st = save.stats, tg = (k, label, on) => `<button class="btn tg${on ? ' on' : ''}" data-tg="${k}">${label}: ${on ? 'ON' : 'OFF'}</button>`;
     this.open(`<h2>SETTINGS</h2><div class="grid">
-      ${tg('sfx', 'SOUND', s.sfx)}${tg('shake', 'SCREEN SHAKE', s.shake)}${tg('auto', 'AUTO-FIRE', s.auto)}
+      ${tg('sfx', 'SOUND', s.sfx)}${tg('shake', 'SCREEN SHAKE', s.shake)}${tg('auto', 'AUTO-FIRE', s.auto)}${tg('blood', 'BLOOD', s.blood)}
       <button class="btn tg${s.gfx === 'high' ? ' on' : ''}" data-gfx>GRAPHICS: ${s.gfx === 'high' ? 'HIGH' : 'LOW'}</button>
       <button class="btn tg on" data-aim>TOUCH AIM: ${s.aim === 'swipe' ? 'SWIPE' : 'POINT'}</button></div>
       <label class="sens">SWIPE SENSITIVITY <input type="range" id="sens" min="0.4" max="2.2" step="0.1" value="${s.sens}"></label>
@@ -140,7 +140,7 @@ const UI = {
       <p class="muted">Desktop: mouse aims · hold click to fire · R reload · G grenade · SPACE bullet time · P pause</p>
       <div class="row"><button class="btn danger" data-reset>RESET PROGRESS</button><button class="btn" data-close>CLOSE</button></div>`, e => {
       const b = e.target.closest('button'); if (!b) return;
-      if (b.dataset.tg) { s[b.dataset.tg] = !s[b.dataset.tg]; Sfx.on = s.sfx; }
+      if (b.dataset.tg) { s[b.dataset.tg] = !s[b.dataset.tg]; Sfx.on = s.sfx && !Platform.mute; }
       else if ('gfx' in b.dataset) { s.gfx = s.gfx === 'high' ? 'low' : 'high'; GFX_LOW = s.gfx === 'low'; resize(); }
       else if ('aim' in b.dataset) s.aim = s.aim === 'swipe' ? 'point' : 'swipe';
       else if ('reset' in b.dataset) {
@@ -173,8 +173,11 @@ const UI = {
       <p class="quip">${d.won ? 'History has been rewritten.' : pick(QUIPS)}</p>
       <div class="stats">${main}<div><b>${d.kills}</b><small>KILLS</small></div><div><b>${d.heads}</b><small>HEADSHOT KILLS</small></div><div><b>${coinIc}${fmt(d.coins)}</b><small>EARNED</small><em>TOTAL ${fmt(d.total)}</em></div></div>
       ${d.next ? `<p class="unlock">🔓 ${d.next} unlocked</p>` : ''}
+      ${Platform.ads && d.coins >= 1 ? `<button class="btn gold" data-x2>▶ WATCH AD: +${fmt(d.coins)} COINS</button>` : ''}
       <button class="fight" data-go>${d.won ? 'CONTINUE' : 'UPGRADE & RETRY'}</button>`, e => {
-      if (e.target.closest('[data-go]')) { tap(); backToMenu(); }
+      const x2 = e.target.closest('[data-x2]');
+      if (x2) { tap(); x2.disabled = true; Platform.ad('rewarded', ok => { if (ok) { save.coins += d.coins; persist(); x2.textContent = 'COINS DOUBLED!'; } else x2.remove(); }); }
+      else if (e.target.closest('[data-go]')) { tap(); const b = e.target.closest('[data-go]'); b.disabled = true; Platform.ad('midgame', backToMenu); }
     });
   },
 };

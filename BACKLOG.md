@@ -1,5 +1,34 @@
 # Backlog
 
+## 0. Qərar: yayım strategiyası (2026-09-25)
+**Əvvəlcə CrazyGames, sonra Play Store.**
+- **Səbəb:** oyun artıq HTML5-dir və yoxlama 1–2 gün çəkir. Basic Launch real oyunçu datasını (oynama vaxtı, geri qayıtma) pulsuz verir. Eksklüzivlik tələbi yoxdur.
+- **Play Store sonraya qalır.** Yeni şəxsi hesab üçün 12 testçi × 14 gün qapalı test tələb olunur. Bunu CrazyGames ilə paralel başlatmaq olar. Paket Capacitor ilə qurulacaq, reklam AdMob, satış Google Play Billing ilə olacaq.
+- **Gəlir gözləntisi** (bazar datasına əsasən):
+  - CrazyGames-də 1000 oynamaya ~€1–3; orta ssenaridə ayda €200–600.
+  - Play Store-da reklamsız, özü tapılaraq ayda $100–400.
+  - Pullu reklam yalnız ARPDAU ≥ $0.15 olandan sonra.
+
+### 0.1 CrazyGames: kodda hazır olanlar
+- `js/platform.js`: SDK yalnız CrazyGames-də yüklənir (`?cg` ilə lokal test olunur). Başqa yerdə heç nə etmir.
+- Oyun başlayıb-dayananda `gameplayStart/Stop` göndərilir. Hər iki halı loop özü aşkarlayır, ona görə pauza, perk ekranı və nəticə ekranı avtomatik əhatə olunur.
+- Boss öldürülüb era keçiləndə `happytime` çağırılır.
+- Midgame reklam nəticə ekranında CONTINUE basılanda göstərilir. Tezliyi CrazyGames özü idarə edir (max 3 dəqiqədə bir).
+- Rewarded reklam nəticə ekranındakı "▶ WATCH AD: +X COINS" düyməsidir (x2 coin). Xəta olsa mükafat verilmir, düymə yox olur. AdBlock olanda və Basic Launch-da düymə göstərilmir.
+- Reklam oynayanda səs dayanır. Platformanın `muteAudio` ayarına əməl olunur.
+- Yaddaş `SDK.data` ilə CrazyGames hesabına bağlanır (buluddakı versiya üstündür). Göndərişdə "Progress Save" açarını aç.
+- Ayarlarda "BLOOD: ON/OFF" var (PEGI 12). OFF olanda qan boz toza çevrilir, baş qopmur.
+- CrazyGames-də özümüzün fullscreen funksiyası və service worker söndürülür.
+
+### 0.2 CrazyGames: qalan əl işləri
+- [ ] developer.crazygames.com-da hesab aç və Basic Launch üçün göndər.
+- [ ] Yükləmə üçün zip: `git archive -o shoot-unlimited.zip HEAD index.html manifest.webmanifest icon.svg js`
+- [ ] Kapak şəkilləri (1920×1080, 800×450), qısa təsvir. Təsvirdə fərqləri vurğula: 7 era, perk-lər, endless rift. Məqsəd "kopya" şübhəsini aradan qaldırmaqdır.
+- [ ] QA qan və ya baş qopmasını PEGI 12 üçün çox görsə: `blood` ayarının susmaya görə dəyərini `false` et (`readSave` içində).
+- [ ] Full Launch dəvəti gəlsə: 1.4-dəki revive ekranını CrazyGames rewarded reklamı ilə tətbiq et. Qayda: hər ölümdən sonra yox, arabir.
+- [ ] Basic Launch datasına bax: orta oynama vaxtı və D1. Sonra `BAL`-ı tənzimlə (bənd 3).
+
+
 ## 1. Monetizasiya (əsas prioritet)
 
 ### 1.1 Prinsiplər
@@ -53,7 +82,7 @@
 | VIP | $4.99 birdəfəlik | — | Rewarded düymələri reklamsız işləyir, x2 coin həmişə aktivdir |
 
 ### 1.8 Texniki plan
-1. **Faza 1: yalnız rewarded reklam, server yoxdur.** PWA üçün Google H5 Games Ads (Ad Placement API, `adBreak({type:'reward'})`) istifadə olunur. Hər şey `localStorage`-da saxlanır. Oyunçu aldatsa, yalnız özünə zərər verir, çünki real pul yoxdur.
+1. **Faza 1: yalnız rewarded reklam, server yoxdur.** CrazyGames-də reklam yalnız onların SDK-sı ilə göstərilir (`Platform.ad`). Oyundaxili satış (IAP) orada yalnız dəvət alan oyunlara Xsolla ilə açılır. Öz saytımızda (GitHub Pages) reklam yoxdur. Hər şey `localStorage`-da saxlanır. Oyunçu aldatsa, yalnız özünə zərər verir, çünki real pul yoxdur.
 2. **Faza 2: IAP.** Real pulla alınan almazlar üçün server tərəfdə balans və çek (receipt) yoxlaması **mütləqdir**, çünki `localStorage` asan dəyişdirilir. Seçimlər:
    - Capacitor ilə Play Store-a çıxarmaq (Google Play Billing + AdMob);
    - veb-də qalmaq (Stripe + backend, məs. Supabase).

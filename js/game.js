@@ -15,14 +15,19 @@ function resize() {
 
 // ===== save =====
 const SAVE_KEY = 'shoot-unlimited-v1';
-const save = (() => {
+function readSave(raw) {
   const d = { coins: 0, up: {}, owned: ['pistol'], eq: 'pistol', unlocked: 1, best: [], endless: 0,
-    set: { sfx: true, shake: true, auto: true, aim: 'swipe', sens: 1, gfx: 'high' }, stats: { runs: 0, kills: 0, deaths: 0, heads: 0 } };
-  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) return { ...d, ...s, set: { ...d.set, ...s.set }, stats: { ...d.stats, ...s.stats } }; } catch (e) { }
+    set: { sfx: true, shake: true, auto: true, aim: 'swipe', sens: 1, gfx: 'high', blood: true }, stats: { runs: 0, kills: 0, deaths: 0, heads: 0 } };
+  try { const s = JSON.parse(raw); if (s) return { ...d, ...s, set: { ...d.set, ...s.set }, stats: { ...d.stats, ...s.stats } }; } catch (e) { }
   return d;
-})();
+}
+const save = readSave((() => { try { return localStorage.getItem(SAVE_KEY); } catch (e) { return null; } })());
 if (location.search.includes('rich')) save.coins += 1e6; // dev cheat
-function persist() { if (G.wiped) return; try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { } }
+function persist() {
+  if (G.wiped) return; const v = JSON.stringify(save);
+  try { localStorage.setItem(SAVE_KEY, v); } catch (e) { }
+  Platform.store(v); // CrazyGames cloud save (no-op elsewhere)
+}
 const lv = id => save.up[id] || 0;
 
 // ===== terrain: stepped tile columns, generated lazily in both directions =====
@@ -205,7 +210,7 @@ function eraCleared() {
   addCoins(BAL.eraCoin * r.coinMul * UP.income(lv('income')), player.x + 40, player.y - 160);
   r.unlockedNew = save.unlocked < ERAS.length && save.unlocked === r.era + 1;
   if (r.unlockedNew) save.unlocked++;
-  persist();
+  persist(); Platform.happy();
 }
 function playerDie() {
   const p = player; if (p.dead) return;
@@ -393,7 +398,7 @@ function killEnemy(e, o, head, d) {
     if (e.held && e.held !== 'bomb' && (e.held !== 'shield' || e.shield > 0)) { // the weapon drops and tumbles
       const h = e.pts[6]; part({ k: 'item', held: e.held, look: e.look, s: e.s, x: h[0], y: h[1], vx: vx * 0.3 + rand(-60, 60), vy: rand(-320, -180), rot: 0, vr: rand(-9, 9), life: 4, max: 4, g: 1 });
     }
-    if (head) { // the killing shot was a headshot: pop the head off (HP scales per era, so no overkill threshold)
+    if (head && save.set.blood) { // the killing shot was a headshot: pop the head off (HP scales per era, so no overkill threshold)
       const hi = RIGS[e.rig].head;
       rd.sticks = rd.sticks.filter(s => s[0] !== hi && s[1] !== hi);
       const nk = rd.p[RIGS[e.rig].neck]; rd.cut = hi; rd.spin = rand(-14, 14);
@@ -401,8 +406,8 @@ function killEnemy(e, o, head, d) {
       // small controlled pop (overrides the hit impulse, which would fling a lone point across the map)
       rd.o[hi][0] = rd.p[hi][0] - ((o.dx || 0) * 160 + rand(-40, 40)) * RD_STEP; rd.o[hi][1] = rd.p[hi][1] + 320 * RD_STEP;
       bleed(e, rd.p[hi][0], rd.p[hi][1], 0, -1, 14);
-      popText(e.x, e.bb[1] - 18, 'HEADSHOT!', '#ff4d4d', 20);
     }
+    if (head) popText(e.x, e.bb[1] - 18, 'HEADSHOT!', '#ff4d4d', 20);
     addRagdoll(rd);
   }
   addCoins(e.A.coin * r.coinMul * UP.income(lv('income')) * (1 + 0.35 * (r.perks.greed || 0)) * (1 + Math.min(r.combo, BAL.comboMax) * BAL.comboCoin), e.pts[0][0], e.pts[0][1], true);
@@ -497,7 +502,7 @@ function addCoins(v, wx, wy, fly) {
 // ===== particles & text =====
 function part(o) { if (parts.length > 700) parts.shift(); parts.push(o); }
 function bleed(e, x, y, dx, dy, n) {
-  const c = (e && e.F.blood) || '#b3262b';
+  const c = !save.set.blood ? '#8d8a82' : (e && e.F.blood) || '#b3262b'; // blood off: dust puffs (PEGI 12 portals)
   for (let i = 0; i < n; i++) part({ k: 'blood', x, y, vx: (dx || 0) * rand(60, 260) + rand(-80, 80), vy: (dy || 0) * rand(60, 260) + rand(-220, 40), life: rand(2, 4), max: 4, sz: rand(2.5, 4.5), c, g: 1 });
 }
 function burst(x, y, c, n, spd) { for (let i = 0; i < n; i++) part({ k: 'debris', x, y, vx: rand(-spd, spd), vy: rand(-spd * 1.4, -spd * 0.2), life: rand(1.5, 3), max: 3, sz: rand(3, 6), c, g: 1 }); }
@@ -709,6 +714,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   const rdt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   step(rdt);
+  Platform.gameplay(G.state === 'play');
   render();
   UI.tick();
 }
@@ -762,11 +768,13 @@ addEventListener('keydown', e => {
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); persist(); } });
 
-function boot() {
+async function boot() {
+  await Platform.init(raw => { if (raw) Object.assign(save, readSave(raw)); }); // cloud save wins on CrazyGames
+  G.era = Math.min(save.unlocked, ERAS.length) - 1;
   resize(); addEventListener('resize', resize);
-  Sfx.on = save.set.sfx; GFX_LOW = save.set.gfx === 'low';
+  Sfx.on = save.set.sfx && !Platform.mute; GFX_LOW = save.set.gfx === 'low';
   setupWorld(G.era); spawnDummies(); wep = computeWeapon();
   UI.init();
   requestAnimationFrame(t => { last = t; frame(t); });
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !Platform.sdk) navigator.serviceWorker.register('sw.js').catch(() => { });
 }

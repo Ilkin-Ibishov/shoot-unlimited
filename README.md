@@ -40,3 +40,4 @@ Oyunun real kodunu ekransız işlədir. İnsan kimi nişan alan bot (casual / av
 - `js/game.js`: dünya, döyüş, dalğalar, input; `step()` bir oyun addımıdır (simulyator da onu istifadə edir)
 - `js/render.js`: bütün çəkiliş (fon, relyef, personajlar, effektlər)
 - `js/ui.js`: menyu, HUD, modallar
+- `js/platform.js`: CrazyGames SDK körpüsü (reklam, gameplay siqnalları, bulud yaddaşı); başqa saytlarda heç nə etmir
