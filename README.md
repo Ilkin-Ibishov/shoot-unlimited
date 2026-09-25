@@ -17,6 +17,14 @@ node tools/sim.js skill=all n=3
 ```
 Oyunun real kodunu ekransız işlədir. İnsan kimi nişan alan bot (casual / avg / pro) bütün kampaniyanı oynayır: run → mağaza → run. Hər era üçün neçə run lazım olduğunu, ilk cəhdin faizini, ölümləri və minimum HP-ni göstərir. Bütün balans rəqəmləri `js/data.js`-də (`BAL`, `ARCH`, `ERAS`, `UPGRADES`, `WEAPONS`) saxlanılır. Hər dəyişiklikdən sonra simulyatoru yenidən işə salın.
 
+## Səs alətləri
+```
+node tools/listen.js sfx all        # bütün səs effektlərinin spektroqram vərəqi + ölçülər
+node tools/listen.js sfx pistol     # bir səs: böyük spektroqram + WAV
+node tools/listen.js music city     # era musiqisi (mix və ya bed|groove|boss layı)
+```
+Bütün səslər və musiqi `js/dsp.js`-də koddan yaradılır (səs faylı yoxdur). Alət eyni kodu Node-da render edir və nəticəni `tools/out/`-a yazır.
+
 ## İdarəetmə
 - **Mobil:** barmağı yuxarı/aşağı sürüşdürüb nişan alın (swipe). Silah avtomatik atır. 💣 qumbara, ⏳ bullet time, 🔄 reload.
 - **PC:** siçan nişan alır, klik atəş açır, `R` reload, `G` qumbara, `SPACE` bullet time, `P` pauza.
@@ -36,7 +44,8 @@ Oyunun real kodunu ekransız işlədir. İnsan kimi nişan alan bot (casual / av
 
 ## Fayllar
 - `js/data.js`: bütün balans və kontent (era, düşmən, silah, perk). Oyunu tənzimləmək üçün bura baxın.
-- `js/engine.js`: səs sintezi, skelet/poza, verlet ragdoll fizikası
+- `js/engine.js`: skelet/poza, verlet ragdoll fizikası
+- `js/dsp.js`: səs sintezi (silahlar, partlayışlar, 7 eranın musiqisi); `js/audio-worker.js` onu arxa fonda işlədir, `js/audio.js` çalır və qarışdırır
 - `js/game.js`: dünya, döyüş, dalğalar, input; `step()` bir oyun addımıdır (simulyator da onu istifadə edir)
 - `js/render.js`: bütün çəkiliş (fon, relyef, personajlar, effektlər)
 - `js/ui.js`: menyu, HUD, modallar

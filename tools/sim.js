@@ -26,7 +26,7 @@ function makeGame(w, h) {
     location: { search: '', protocol: 'file:' }, navigator: {}, requestAnimationFrame() {},
   });
   vm.runInContext('var window = globalThis;', g);
-  for (const f of ['data.js', 'engine.js', 'platform.js', 'game.js', 'render.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'), g, { filename: f });
+  for (const f of ['data.js', 'engine.js', 'audio.js', 'platform.js', 'game.js', 'render.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'), g, { filename: f });
   vm.runInContext('(' + harness + ')()', g);
   return g;
 }

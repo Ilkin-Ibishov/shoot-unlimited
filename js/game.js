@@ -307,7 +307,7 @@ function fire() {
 function startReload() {
   const p = player;
   if (!run || wep.beam || p.reload > 0 || p.ammo >= wep.mag) return;
-  p.reload = wep.reload; Sfx.play('click');
+  p.reload = wep.reload; Sfx.play('magout');
 }
 function beam(want, dt) {
   const p = player;
@@ -442,7 +442,7 @@ function shootAt(e, k) {
   if (K.g) { const t = Math.max(0.35, Math.abs(dx) / K.speed); vx = dx / t; vy = dy / t - 0.5 * K.g * t; }
   else { const d = Math.hypot(dx, dy) || 1; vx = dx / d * K.speed; vy = dy / d * K.speed; }
   eprojs.push({ x: h[0], y: h[1], vx, vy: vy + k * 70, K, dmg: e.dmg, life: 6, rot: 0 });
-  e.act = 1; Sfx.play(K.line ? 'eshot' : 'throw');
+  e.act = 1; Sfx.play(kind === 'arrow' ? 'bow' : kind === 'laser' ? 'elaser' : K.line ? 'eshot' : 'throw');
 }
 function shootDown(j) {
   const q = eprojs[j]; eprojs.splice(j, 1);
@@ -779,6 +779,7 @@ document.addEventListener('visibilitychange', () => {
 async function boot() {
   await Platform.init(raw => { if (raw) Object.assign(save, readSave(raw)); }); // cloud save wins on CrazyGames
   G.era = Math.min(save.unlocked, ERAS.length) - 1;
+  Sfx.prep(); Music.load(ERAS[G.era].bg); // render audio while the player looks at the menu
   resize(); addEventListener('resize', resize);
   Sfx.on = save.set.sfx && !Platform.mute; Music.on = save.set.music && !Platform.mute; GFX_LOW = save.set.gfx === 'low';
   setupWorld(G.era); spawnDummies(); wep = computeWeapon();

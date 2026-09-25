@@ -104,7 +104,8 @@
 - Qəhrəman üçün geyim/papaq seçimi: prosedur çəkilir, ucuz başa gəlir. 💎 ilə kosmetika satmaq olar.
 
 ## 5. Səs
-- [x] Proqramla yaradılan fon musiqisi (`Music` modulu, `js/engine.js`). Hər eranın öz tonu, tempi və tembri var. Menyuda sakit, döyüşdə tam, boss-da daha gərgin çalır. Ayarlarda MUSIC ON/OFF.
+- [x] Səs mühərriki yenidən yazıldı (`js/dsp.js`): real atəş səsi layları, partlayış, metal, Karplus-Strong simli alətlər, FM brass, humanize. Hər eranın öz janrı var: city rock, jungle tribal, castle orkestr, desert hijaz, west spaghetti-western, sea shanty 6/8, future synthwave. Musiqi 3 layda çalır (menyu, döyüş, boss). Yoxlama aləti: `tools/listen.js`.
+- [ ] Oyunçulardan səs haqqında rəy topla; lazım olsa `SFX_LEVEL` / `MUSIC_VOL` (`js/audio.js`) tənzimlənsin.
 - [ ] Səs səviyyəsi üçün slayder (SFX/MUSIC ayrı), əgər oyunçular istəsə.
 
 ## 6. Texniki sığorta
