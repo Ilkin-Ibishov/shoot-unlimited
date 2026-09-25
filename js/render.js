@@ -442,10 +442,6 @@ function drawGround(c) {
   if (G.gEra !== era) { G.gEra = era; RIM = rgba(mix(era.sky[1], '#ffffff', 0.35), 0.3); G.gGrad = c.createLinearGradient(0, 300, 0, VIEW_H); G.gGrad.addColorStop(0, era.ground); G.gGrad.addColorStop(1, shade(era.ground, 0.7)); }
   c.fillStyle = G.gGrad; c.fill(fill);
   c.save(); c.clip(fill);
-  c.globalAlpha = 0.55; c.strokeStyle = era.line; c.lineWidth = 1.2; c.beginPath();
-  for (let i = i0; i <= i1 + 1; i++) { c.moveTo(i * TILE, 300); c.lineTo(i * TILE, VIEW_H + 40); }
-  for (let y = 300; y < VIEW_H + 40; y += TILE) { c.moveTo(i0 * TILE, y); c.lineTo(i1 * TILE + TILE, y); }
-  c.stroke(); c.globalAlpha = 1;
   c.translate(0, 9); c.strokeStyle = 'rgba(0,0,0,0.08)'; c.lineWidth = 14; c.stroke(top); // soft shade under the lip
   c.restore();
   c.lineCap = 'butt'; c.lineJoin = 'miter';
