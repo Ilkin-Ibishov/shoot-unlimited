@@ -11,6 +11,7 @@ const BAL = {
   meleeGap: 1.0, bossGap: 1.4,                        // enemy melee attack interval
   kickDmg: 10, kickCd: 3.5, kickKnock: 700,           // auto-kick (x gun damage upgrade)
   nadeDmg: 40, knock: 0.25,                           // grenade (x gun damage upgrade), bullet knockback factor
+  exploderBlast: 1.5,                                 // a bomber's blast hurts nearby enemies for N x walker HP (was 3: one pop cleared the wave)
   fireRate: 0.5,                                      // global multiplier on every weapon's fire rate (laser is continuous, unaffected)
   retreat: 32,                                        // player backpedal speed during a wave (units/s)
   perkEvery: 3,                                       // perk pick after every N waves
