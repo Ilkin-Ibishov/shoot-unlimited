@@ -15,7 +15,9 @@ Yoxlama: `node tools/check.js`
 ```bash
 node tools/sim.js skill=all n=3
 ```
-Oyunun real kodunu ekransız işlədir. İnsan kimi nişan alan bot (casual / avg / pro) bütün kampaniyanı oynayır: run → mağaza → run. Hər era üçün neçə run lazım olduğunu, ilk cəhdin faizini, ölümləri və minimum HP-ni göstərir. Bütün balans rəqəmləri `js/data.js`-də (`BAL`, `ARCH`, `ERAS`, `UPGRADES`, `WEAPONS`) saxlanılır. Hər dəyişiklikdən sonra simulyatoru yenidən işə salın.
+Oyunun real kodunu ekransız işlədir. İnsan kimi nişan alan bot (casual / avg / pro) bütün kampaniyanı oynayır: run → mağaza → run. Hər era üçün neçə run lazım olduğunu, ilk cəhdin faizini, ölümləri və minimum HP-ni göstərir. Bütün balans rəqəmləri `js/data.js`-də (`BAL`, `ARCH`, `ERAS`, `UPGRADES`, `WUP`, `WEAPONS`) saxlanılır. Hər dəyişiklikdən sonra simulyatoru yenidən işə salın.
+
+`node tools/sim.js wtest=<era> lv=5 guns=rifle,sniper` hər silahı eyni səviyyədə bir erada sınayır (real effektivlik). `node tools/sim.js ... dump=tools/out/x` + `node tools/econ.js tools/out/x` hər era üçün gəliri, silah gücünü və pulun hara xərcləndiyini göstərir.
 
 ## Debug rejimi
 Oyunu `?debug` ilə açın: `http://localhost:8123/?debug` və ya https://ilkin-ibishov.github.io/shoot-unlimited/?debug
@@ -45,7 +47,7 @@ Bütün səslər və musiqi `js/dsp.js`-də koddan yaradılır (səs faylı yoxd
 ## Orijinaldan fərqlər
 | Orijinal | Shoot Unlimited |
 |---|---|
-| 3 upgrade | 8 upgrade (damage, fire rate, income, armor, magazine, reload, crit, headshot) |
+| 3 upgrade | Hər silahın öz upgrade-ləri (damage, fire rate, magazine, reload; 10 səviyyə) + qəhrəman upgrade-ləri (income, armor, crit, headshot) |
 | ~7 level, sonra başa qayıdır | 7 era, hərəsinin bossu var + **Endless Time Rift** (hər 5 dalğada era dəyişir) |
 | Upgrade etdikcə düşmən də güclənir | Düşmən gücü sabitdir, yalnız era/dalğadan asılıdır |
 | Bir səhv = ölüm | HP bar, laser sight, auto-kick (melee), bullet time |

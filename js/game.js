@@ -21,8 +21,17 @@ const SAVE_KEY = DEBUG ? 'shoot-unlimited-debug' : 'shoot-unlimited-v1';
 function readSave(raw) {
   const d = { coins: 0, up: {}, wup: {}, owned: ['pistol'], eq: 'pistol', unlocked: 1, best: [], endless: 0,
     set: { sfx: true, shake: true, auto: true, aim: 'swipe', sens: 1, gfx: 'high', blood: true, music: true }, stats: { runs: 0, kills: 0, deaths: 0, heads: 0 } };
-  try { const s = JSON.parse(raw); if (s) return { ...d, ...s, set: { ...d.set, ...s.set }, stats: { ...d.stats, ...s.stats } }; } catch (e) { }
+  try { const s = JSON.parse(raw); if (s) return refundGunUps({ ...d, ...s, set: { ...d.set, ...s.set }, stats: { ...d.stats, ...s.stats } }); } catch (e) { }
   return d;
+}
+// gun upgrades used to be global (Damage/Fire Rate/Magazine/Reload for every gun); they are per gun now, so old
+// saves get back every coin they spent on them (old prices: base * growth^level)
+const OLD_GUN_UPS = { dmg: [15, 1.32], rate: [15, 1.34], mag: [20, 1.35], reload: [20, 1.35] };
+function refundGunUps(sv) {
+  let back = 0;
+  for (const [id, [b, g]] of Object.entries(OLD_GUN_UPS)) { for (let l = 0; l < (sv.up[id] || 0); l++) back += Math.round(b * Math.pow(g, l)); delete sv.up[id]; }
+  if (back) { sv.coins += back; sv.refund = (sv.refund || 0) + back; } // the menu tells the player once
+  return sv;
 }
 const save = readSave((() => { try { return localStorage.getItem(SAVE_KEY); } catch (e) { return null; } })());
 function persist() {
@@ -32,6 +41,7 @@ function persist() {
 }
 const lv = id => save.up[id] || 0;
 const wl = (id, w = save.eq) => (save.wup[w] || {})[id] || 0; // weapon upgrade level of gun w
+const wlSum = w => WUP.list.reduce((a, u) => a + wl(u.id, w), 0); // total levels bought on gun w
 
 // ===== terrain: stepped tile columns, generated lazily in both directions =====
 function makeGen(seed, flat) { return { r: mulberry32(seed), y: 420, mode: 0, left: flat, dir: 0, stepW: 1, sub: 1 }; }
@@ -66,16 +76,17 @@ let run = null, wep = null, era = ERAS[0], bg = [];
 const enemies = [], ragdolls = [], bullets = [], eprojs = [], parts = [], texts = [], crates = [], nades = [], coinFx = [];
 const camLead = () => Math.min(170, viewW * 0.17);
 
-function computeWeapon() {
-  const d = WEAPONS.find(w => w.id === save.eq) || WEAPONS[0], P = run ? run.perks : {};
+// stats of gun `id` with its own upgrades (and the run's perks during a run)
+function computeWeapon(id = save.eq) {
+  const d = WEAPONS.find(w => w.id === id) || WEAPONS[0], P = run ? run.perks : {}, L = u => wl(u, d.id);
   const big = 1 + 0.5 * (P.bigmag || 0);
   return { ...d,
-    dmg: (d.dmg || 0) * WUP.fx.dmg(wl('dmg')) * BAL.bulletDmg, dps: (d.dps || 0) * WUP.fx.dmg(wl('dmg')) * BAL.bulletDmg,
-    rate: d.rate * WUP.fx.rate(wl('rate')) * BAL.fireRate,
-    mag: Math.max(1, Math.round(d.mag * WUP.fx.mag(wl('mag')) * big)),
-    heat: (d.heat || 0) * WUP.fx.mag(wl('mag')) * big,
-    reload: d.reload * WUP.fx.reload(wl('reload')) / (1 + 0.35 * (P.quick || 0)),
-    melee: d.tier * WUP.fx.dmg(wl('dmg')), // kick + grenade scale with the gun's tier
+    dmg: (d.dmg || 0) * WUP.fx.dmg(L('dmg')) * BAL.bulletDmg, dps: (d.dps || 0) * WUP.fx.dmg(L('dmg')) * WUP.fx.rate(L('rate')) * BAL.bulletDmg, // a beam has no fire rate: that upgrade is its intensity
+    rate: d.rate * WUP.fx.rate(L('rate')) * BAL.fireRate,
+    mag: Math.max(1, Math.round(d.mag * WUP.fx.mag(L('mag')) * big)),
+    heat: (d.heat || 0) * WUP.fx.mag(L('mag')) * big,
+    reload: d.reload * WUP.fx.reload(L('reload')) / (1 + 0.35 * (P.quick || 0)),
+    melee: d.tier * WUP.fx.dmg(L('dmg')), // kick + grenade scale with the gun's tier
     crit: UP.crit(lv('crit')), head: UP.head(lv('head')) * (1 + 0.25 * (P.hunter || 0)) };
 }
 

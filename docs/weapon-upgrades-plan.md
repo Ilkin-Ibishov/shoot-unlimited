@@ -1,6 +1,6 @@
 # Silah əsaslı upgrade-lər: balans hesabı və plan
 
-Prototip `weapon-upgrades` branch-indədir (commit `aa37274`). Oyun məntiqi, data və simulyator hazırdır, UI hələ yoxdur.
+**Status: tətbiq olundu** (main). Aşağıda plan və son ölçmələr var.
 Bütün rəqəmlər real oyun kodu ilə işləyən simulyatordan gəlir: `tools/sim.js`, `tools/econ.js`, silah testi `sim.js wtest=`.
 
 ## 1. İndiki sistemin analizi (baza xətti, hər bacarıq üçün 4 kampaniya)
@@ -94,7 +94,22 @@ Casual üçün hər erada raund sayı (yeni → köhnə):
 3. **Casual üçün Rocket çətin silahdır.** Yavaş mərmi hərəkət edən hədəfə qabaqcadan nişan tələb edir. Era 5 casual üçün ən uzun eradır (10–15 raund). Qəbul edilə bilər, çünki "bacarıq silahı"dır. Lazım olsa, mərminin sürəti 900 → 1100 edilə bilər.
 4. **Sim-in nəzəri güc formulu Sniper və Rocket-i şişirdirdi.** Pierce və partlayış bonusları real oyunda demək olar ki görünmədi. Balans real testlərlə aparıldı. Formula yalnız hesabat üçün qalır.
 
-## 5. Tətbiq planı (təsdiqdən sonra)
+## 5. Tətbiq (edildi)
+Tətbiq zamanı iki dəyişiklik də oldu:
+- Laser-də Fire Rate upgrade-i heç nə etmirdi (şüanın atəş sürəti yoxdur). İndi o, "Intensity"-dir və şüanın zərərini artırır. Buna görə Laser-in baza zərəri 600 → 490 endi.
+- Era 2–7-nin HP-si 12% artırıldı: 2, 3.4, 9, 14.5, 22.5, 45.
+
+Son ölçmə (hər bacarıq üçün 10 kampaniya, bombalı düşmən düzəlişi daxil):
+
+| Bot | Raund | Vaxt |
+|---|---|---|
+| Casual | 48.9 | 3.15 saat |
+| Avg | 51.3 | 3.3 saat |
+| Pro | 33.5 | 2.1 saat |
+
+Casual ilə avg arasındakı fərq yoxa çıxdı (risk 1), əsasən Era 7-dəki boss divarı üzündən.
+
+### Plan maddələri
 1. **Data və məntiq:** prototipdən `main`-ə keçir. Branch-də hazırdır: `WUP`, `wupCost`, `save.wup`, `computeWeapon`, kick/qumbara, sim.
 2. **Köhnə yaddaşın köçürülməsi:** Damage, Fire Rate, Magazine və Reload-a xərclənən bütün coin-lər geri qaytarılır. Qiymətləri köhnə formullarla hesablanır.
 3. **UI:**

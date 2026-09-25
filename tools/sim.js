@@ -96,7 +96,7 @@ function harness() {
   // gun power at given levels: sustained single-target dps (pierce/blast bonuses did not show up in play tests); same model as tools/econ.js
   const gunPow = (w, L = save.wup[w.id] || {}) => {
     const F = WUP.fx, crowd = 1;
-    if (w.beam) { const dps = w.dps * F.dmg(L.dmg || 0), heat = w.heat * F.mag(L.mag || 0), rel = w.reload * F.reload(L.reload || 0); return dps * heat / (heat + rel) * crowd; }
+    if (w.beam) { const dps = w.dps * F.dmg(L.dmg || 0) * F.rate(L.rate || 0), heat = w.heat * F.mag(L.mag || 0), rel = w.reload * F.reload(L.reload || 0); return dps * heat / (heat + rel) * crowd; }
     const dmg = w.dmg * F.dmg(L.dmg || 0), rate = w.rate * F.rate(L.rate || 0) * BAL.fireRate, mag = Math.max(1, Math.round(w.mag * F.mag(L.mag || 0))), rel = w.reload * F.reload(L.reload || 0);
     return dmg * w.pellets * mag / (mag / rate + rel) * crowd;
   };

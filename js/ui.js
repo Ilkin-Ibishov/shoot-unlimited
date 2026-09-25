@@ -9,18 +9,21 @@ function goFull() {
   const d = document.documentElement;
   (d.requestFullscreen ? d.requestFullscreen() : Promise.resolve()).then(() => screen.orientation?.lock?.('landscape')).catch(() => { });
 }
-function buy(u) {
-  const l = lv(u.id), c = upCost(u, l);
+// gun = an upgrade of the equipped gun (WUP), otherwise a hero upgrade (UPGRADES)
+function buyUp(u, gun) {
+  const w = WEAPONS.find(x => x.id === save.eq), l = gun ? wl(u.id) : lv(u.id), c = gun ? wupCost(w, u, l) : upCost(u, l);
   if (l >= u.max || save.coins < c) return;
-  save.coins -= c; save.up[u.id] = l + 1; persist();
-  Sfx.init(); Sfx.play('buy'); wep = computeWeapon(); UI.refresh();
+  save.coins -= c;
+  if (gun) (save.wup[w.id] || (save.wup[w.id] = {}))[u.id] = l + 1; else save.up[u.id] = l + 1;
+  persist(); Sfx.init(); Sfx.play('buy'); wep = computeWeapon(); UI.refresh();
 }
+const upName = (u, w) => w && w.beam ? { rate: 'Intensity', mag: 'Cooling', reload: 'Cooldown' }[u.id] || u.name : u.name; // the laser overheats instead of reloading
 function gunSvg(w) {
   return `<svg viewBox="0 0 64 24" width="64" height="24"><rect x="4" y="${12 - w.w / 2}" width="${w.len}" height="${w.w}" rx="1" fill="${w.id === 'laser' ? '#39e1ff' : '#cfd6e2'}"/><rect x="7" y="12" width="6" height="9" fill="#cfd6e2"/></svg>`;
 }
 
 const UI = {
-  cache: {}, upEls: {}, tgt: [0, 0],
+  cache: {}, tab: 'gun', tgt: [0, 0],
   init() {
     $('btnFight').onclick = () => { tap(); if (G.era < save.unlocked) { goFull(); startRun(false); } };
     $('btnEndless').onclick = () => { tap(); goFull(); startRun(true); };
@@ -31,15 +34,15 @@ const UI = {
     $('btnPause').onclick = () => { tap(); pause(); };
     const abil = (id, fn) => $(id).addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); fn(); });
     abil('btnNade', throwNade); abil('btnBT', toggleBT); abil('btnReload', startReload);
-    const box = $('ups');
-    for (const u of UPGRADES) {
-      const d = document.createElement('div'); d.className = 'up';
-      d.innerHTML = `<div class="ic" style="background:${u.color}">${u.icon}</div><div class="bd"><div class="nm">${u.name}<span class="lv"></span></div><div class="row2"><span class="eff"></span><button class="buy"></button></div><div class="lb"><i></i></div></div>`;
-      const btn = d.querySelector('.buy'); btn.onclick = () => buy(u);
-      this.upEls[u.id] = { lv: d.querySelector('.lv'), eff: d.querySelector('.eff'), bar: d.querySelector('.lb i'), btn };
-      box.appendChild(d);
-    }
+    $('ups').onclick = e => {
+      const t = e.target.closest('[data-tab]'); if (t) { tap(); this.tab = t.dataset.tab; this.refresh(); return; }
+      const b = e.target.closest('.buy'); if (b && !b.disabled) buyUp((this.tab === 'gun' ? WUP.list : UPGRADES)[+b.dataset.i], this.tab === 'gun');
+    };
     this.menu();
+    if (save.refund) { // one-time note for saves from before per-gun upgrades
+      this.open(`<h2>WEAPON UPGRADES</h2><p class="quip">Every gun now levels up on its own. Your old gun upgrades were refunded:</p><div class="coins inl">${coinIc}<b>+${fmt(save.refund)}</b></div><button class="fight" data-close>GOT IT</button>`);
+      delete save.refund; persist();
+    }
   },
   menu() { $('menu').classList.remove('hidden'); $('hud').classList.add('hidden'); this.close(); this.refresh(); },
   refresh() {
@@ -52,11 +55,14 @@ const UI = {
     $('eraPrev').disabled = G.era === 0; $('eraNext').disabled = G.era === ERAS.length - 1;
     const eb = $('btnEndless'); eb.disabled = save.unlocked < 2;
     eb.innerHTML = save.unlocked < 2 ? '🔒 ENDLESS' : 'ENDLESS' + (save.endless ? `<small>BEST ${save.endless}</small>` : '');
-    for (const u of UPGRADES) {
-      const el = this.upEls[u.id], l = lv(u.id), max = l >= u.max, cost = upCost(u, l);
-      el.lv.textContent = 'LV ' + l; el.eff.textContent = u.show(l); el.bar.style.width = (l / u.max * 100) + '%';
-      el.btn.innerHTML = max ? 'MAX' : coinIc + fmt(cost); el.btn.disabled = max || save.coins < cost;
-    }
+    // bottom bar: [gun | hero] switch + that side's four upgrades
+    const gun = this.tab === 'gun', w = WEAPONS.find(x => x.id === save.eq) || WEAPONS[0];
+    $('ups').innerHTML = `<div class="uptabs"><button class="tab${gun ? ' on' : ''}" data-tab="gun">🔫 ${w.name}</button><button class="tab${gun ? '' : ' on'}" data-tab="hero">🧍 Hero</button></div>`
+      + (gun ? WUP.list : UPGRADES).map((u, i) => {
+        const l = gun ? wl(u.id) : lv(u.id), max = l >= u.max, cost = gun ? wupCost(w, u, l) : upCost(u, l);
+        return `<div class="up"><div class="ic" style="background:${u.color}">${u.icon}</div><div class="bd"><div class="nm">${upName(u, gun && w)}<span class="lv">${l}/${u.max}</span></div>`
+          + `<div class="row2"><span class="eff">${u.show(l)}</span><button class="buy" data-i="${i}"${max || save.coins < cost ? ' disabled' : ''}>${max ? 'MAX' : coinIc + fmt(cost)}</button></div><div class="lb"><i style="width:${l / u.max * 100}%"></i></div></div></div>`;
+      }).join('');
     this.cache = {};
   },
   era(d) {
@@ -110,9 +116,10 @@ const UI = {
   close() { $('modal').classList.add('hidden'); },
   arsenal() {
     const rows = WEAPONS.map(w => {
-      const own = save.owned.includes(w.id), eq = save.eq === w.id, locked = save.unlocked <= w.era;
-      const stats = w.beam ? `DPS ${+(w.dps * BAL.bulletDmg).toFixed(1)} · HEAT ${w.heat}s · PIERCE ALL`
-        : `DMG ${+(w.dmg * BAL.bulletDmg).toFixed(1)}${w.pellets > 1 ? '×' + w.pellets : ''} · ${+(w.rate * BAL.fireRate).toFixed(2)}/s · MAG ${w.mag}${w.pierce ? ' · PIERCE ' + w.pierce : ''}${w.explode ? ' · BLAST' : ''}`;
+      const own = save.owned.includes(w.id), eq = save.eq === w.id, locked = save.unlocked <= w.era, c = computeWeapon(w.id), n = wlSum(w.id);
+      const stats = (c.beam ? `DPS ${fmt(c.dps)} · HEAT ${+c.heat.toFixed(1)}s · PIERCE ALL`
+        : `DMG ${fmt(c.dmg)}${c.pellets > 1 ? '×' + c.pellets : ''} · ${+c.rate.toFixed(2)}/s · MAG ${c.mag}${c.pierce ? ' · PIERCE ' + c.pierce : ''}${c.explode ? ' · BLAST' : ''}`)
+        + (own ? ` · UPG ${n}/${WUP.list.length * 10}` : '');
       const act = eq ? '<button class="btn on" disabled>EQUIPPED</button>'
         : own ? `<button class="btn" data-eq="${w.id}">EQUIP</button>`
         : locked ? `<button class="btn" disabled>🔒 ERA ${w.era + 1}</button>`

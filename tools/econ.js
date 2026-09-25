@@ -14,7 +14,7 @@ function power(id, lv, wlv) {
   const d = WEAPONS.find(w => w.id === id), L = WUP ? (wlv && wlv[id]) || {} : lv, M = WUP ? WUP.fx : UP;
   const dm = M.dmg(L.dmg || 0), rt = M.rate(L.rate || 0), mg = M.mag(L.mag || 0), rl = M.reload(L.reload || 0);
   const crowd = 1; // single-target sustained dps
-  if (d.beam) { const dps = d.dps * dm * BAL.bulletDmg, heat = d.heat * mg, rel = d.reload * rl; return dps * heat / (heat + rel) * crowd; }
+  if (d.beam) { const dps = d.dps * dm * rt * BAL.bulletDmg, heat = d.heat * mg, rel = d.reload * rl; return dps * heat / (heat + rel) * crowd; }
   const dmg = d.dmg * dm * BAL.bulletDmg, rate = d.rate * rt * BAL.fireRate, mag = Math.max(1, Math.round(d.mag * mg)), rel = d.reload * rl;
   return dmg * d.pellets * mag / (mag / rate + rel) * crowd;
 }

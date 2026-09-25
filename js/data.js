@@ -56,7 +56,7 @@ const WEAPONS = [
   { id: 'rifle',   name: 'Assault Rifle',   desc: 'Fast, accurate, dependable.',          dmg: 30, rate: 8,   mag: 25, reload: 1.8, spread: 0.022, pellets: 1, speed: 2200, pierce: 0, knock: 200, price: 4000,  era: 2, tier: 8, up: 100, len: 44, w: 6,  color: '#2f3b2a', sfx: 'rifle',   shake: 2.5 },
   { id: 'sniper',  name: 'Sniper',          desc: 'Pierces 3 enemies. One shot, one ragdoll.', dmg: 380, rate: 1.3, mag: 6, reload: 2.0, spread: 0, pellets: 1, speed: 3600, pierce: 3, knock: 650, price: 6500,  era: 3, tier: 16, up: 150, len: 60, w: 5,  color: '#1f2530', sfx: 'sniper',  shake: 7 },
   { id: 'rocket',  name: 'Rocket Launcher', desc: 'Explodes. Obviously.',                 dmg: 1300, rate: 0.8, mag: 3,  reload: 2.2, spread: 0.01,  pellets: 1, speed: 900,  pierce: 0, knock: 0, explode: 140, price: 10000, era: 4, tier: 30, up: 260, len: 54, w: 11, color: '#4c5a2e', sfx: 'rocket', shake: 8 },
-  { id: 'laser',   name: 'Laser Beam',      desc: 'Continuous beam, pierces all. Overheats.', dps: 600, heat: 3.2, reload: 1.6, rate: 1, mag: 1, beam: true, spread: 0, pellets: 1, speed: 0, pierce: 99, knock: 40, price: 13000, era: 5, tier: 60, up: 450, len: 45, w: 8, color: '#1b2a3a', sfx: 'laser', shake: 0 },
+  { id: 'laser',   name: 'Laser Beam',      desc: 'Continuous beam, pierces all. Overheats.', dps: 490, heat: 3.2, reload: 1.6, rate: 1, mag: 1, beam: true, spread: 0, pellets: 1, speed: 0, pierce: 99, knock: 40, price: 13000, era: 5, tier: 60, up: 450, len: 45, w: 8, color: '#1b2a3a', sfx: 'laser', shake: 0 },
 ];
 
 // in-run roguelite perks
@@ -115,7 +115,7 @@ const ERAS = [
       brute:    { name: 'Tank',        deco: 'torn', face: 'zombie', arms: 'zombie', look: { k: '#78b843', s: '#8b8b8b', p: '#3b3b3b' } },
       boss:     { name: 'Patient Zero', deco: 'torn', face: 'zombie', arms: 'zombie', look: { k: '#6aa935', s: '#f4f4f4', p: '#2e3445' }, moves: ['summon', 'charge'] },
     } },
-  { name: 'Jurassic', year: '65M BC', hp: 1.8, coin: 1.5, bg: 'jungle', sun: '#ffd27a', cloud: 0.6, tuft: '#5f8a34',
+  { name: 'Jurassic', year: '65M BC', hp: 2, coin: 1.5, bg: 'jungle', sun: '#ffd27a', cloud: 0.6, tuft: '#5f8a34',
     sky: ['#f3a35c', '#fbe0a6'], layers: ['#d6a174', '#94704f'], ground: '#b89a74', line: '#a08463', edge: '#7d6448',
     foes: {
       walker:   { name: 'Caveman',     deco: 'fur', arms: 'hold', look: { k: '#d9a066', s: '#8a5a2b', p: '#6b4423' }, hat: 'hair', held: 'club' },
@@ -127,7 +127,7 @@ const ERAS = [
       brute:    { name: 'Bonecrusher', rig: 'raptor', scale: 1.25, look: { k: '#6d7f9a', s: '#5b6e8a', p: '#4a5a70' } },
       boss:     { name: 'T-Rex',       rig: 'raptor', scale: 1.35, look: { k: '#7a5a3a', s: '#6b4d31', p: '#553b25' }, moves: ['charge', 'summon'], proj: 'rock' },
     } },
-  { name: 'Dark Ages', year: '1350 AD', hp: 3, coin: 2.2, bg: 'castle', sun: '#ffe3c2', cloud: 0.5, tuft: '#5d7d44',
+  { name: 'Dark Ages', year: '1350 AD', hp: 3.4, coin: 2.2, bg: 'castle', sun: '#ffe3c2', cloud: 0.5, tuft: '#5d7d44',
     sky: ['#6f5a8f', '#d7a9b8'], layers: ['#9d88ae', '#6a5780'], ground: '#9d9a8c', line: '#88857a', edge: '#6b6960',
     foes: {
       walker:   { name: 'Footman',     deco: 'armor', arms: 'hold', look: { k: '#e0b48a', s: '#8a2f2f', p: '#3a3a48' }, hat: 'helmet', held: 'sword' },
@@ -139,7 +139,7 @@ const ERAS = [
       brute:    { name: 'Ogre',        deco: 'fur', arms: 'hold', look: { k: '#7a9a4a', s: '#6b4a2b', p: '#4a3320' }, hat: 'horns', held: 'club' },
       boss:     { name: 'Black Knight', deco: 'armor', arms: 'hold', look: { k: '#2a2a30', s: '#1f1f25', p: '#15151a' }, hat: 'helmet', held: 'sword', moves: ['charge', 'throw'], proj: 'arrow' },
     } },
-  { name: 'Ancient Egypt', year: '1300 BC', hp: 8, coin: 3.1, bg: 'desert', sun: '#fff3c4', cloud: 0.5,
+  { name: 'Ancient Egypt', year: '1300 BC', hp: 9, coin: 3.1, bg: 'desert', sun: '#fff3c4', cloud: 0.5,
     sky: ['#e9b75f', '#f8e2b0'], layers: ['#e2c08a', '#c19a60'], ground: '#d9c08f', line: '#c4aa78', edge: '#a88f5f',
     foes: {
       walker:   { name: 'Mummy',       deco: 'wrap', face: 'zombie', arms: 'zombie', look: { k: '#e2d6b5', s: '#d8cba6', p: '#cbbd96' }, hat: 'bandage', blood: '#c9b88a' },
@@ -151,7 +151,7 @@ const ERAS = [
       brute:    { name: 'Stone Golem', deco: 'stone', arms: 'zombie', look: { k: '#9a8f7f', s: '#8a7f6f', p: '#7a6f5f' }, blood: '#8a7f70' },
       boss:     { name: 'Pharaoh',     deco: 'royal', arms: 'aim', look: { k: '#e2d6b5', s: '#d4af37', p: '#1f4e8c' }, hat: 'crown', moves: ['summon', 'throw'], proj: 'orb' },
     } },
-  { name: 'Wild West', year: '1880 AD', hp: 13, coin: 4.3, bg: 'west', sun: '#ffdd88', cloud: 0.55, tuft: '#8a7a3a',
+  { name: 'Wild West', year: '1880 AD', hp: 14.5, coin: 4.3, bg: 'west', sun: '#ffdd88', cloud: 0.55, tuft: '#8a7a3a',
     sky: ['#e8793f', '#f6c77a'], layers: ['#d08a5c', '#a0603d'], ground: '#c9955e', line: '#b3814f', edge: '#8f6538',
     foes: {
       walker:   { name: 'Undead Cowboy', deco: 'vest', face: 'zombie', arms: 'zombie', look: { k: '#a7c48a', s: '#8a5a3a', p: '#3f4b6b' }, hat: 'cowboy' },
@@ -163,7 +163,7 @@ const ERAS = [
       brute:    { name: 'Big Ox',      deco: 'belt', look: { k: '#c98f5a', s: '#4a6b8a', p: '#3a3a3a' }, hat: 'cowboy' },
       boss:     { name: 'Outlaw King', deco: 'vest', arms: 'aim', look: { k: '#d9a577', s: '#1f1f1f', p: '#1f1f1f' }, hat: 'cowboy', held: 'gun', moves: ['throw', 'summon'], proj: 'bullet' },
     } },
-  { name: 'Pirate Cove', year: '1715 AD', hp: 20, coin: 5.8, bg: 'sea', sun: '#fff6d0', cloud: 0.85,
+  { name: 'Pirate Cove', year: '1715 AD', hp: 22.5, coin: 5.8, bg: 'sea', sun: '#fff6d0', cloud: 0.85,
     sky: ['#58b4c9', '#bfe8ef'], layers: ['#8ccbd7', '#4f9db0'], ground: '#d8c49a', line: '#c2ad82', edge: '#a38e62',
     foes: {
       walker:   { name: 'Drowned Sailor', deco: 'torn', face: 'zombie', arms: 'zombie', look: { k: '#8fbfa8', s: '#3a5a8a', p: '#6b4a2b' }, hat: 'bandana' },
@@ -175,7 +175,7 @@ const ERAS = [
       brute:    { name: 'First Mate',  deco: 'stripes', look: { k: '#c98f5a', s: '#f0f0f0', p: '#2a2a3a' }, hat: 'tricorn' },
       boss:     { name: 'Captain Dreadtide', deco: 'coat', arms: 'hold', look: { k: '#d9a577', s: '#8a1f1f', p: '#1f1f1f' }, hat: 'tricorn', held: 'sword', moves: ['summon', 'throw', 'charge'], proj: 'bomb' },
     } },
-  { name: 'Neon Future', year: '2199 AD', hp: 40, coin: 7.6, bg: 'future', sun: '#ff4fd8', neon: true,
+  { name: 'Neon Future', year: '2199 AD', hp: 45, coin: 7.6, bg: 'future', sun: '#ff4fd8', neon: true,
     sky: ['#1a1036', '#4a2a6b'], layers: ['#3a2a5e', '#271c47'], ground: '#3b3f58', line: '#50568a', edge: '#6b73c0', win: 'rgba(57,225,255,0.35)',
     foes: {
       walker:   { name: 'Droid',       deco: 'robot', arms: 'zombie', look: { k: '#aab4c4', s: '#6b7a90', p: '#4a5566' }, hat: 'visor', blood: '#39e1ff' },

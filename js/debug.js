@@ -50,8 +50,12 @@ if (DEBUG) (() => {
     if (G.state === 'menu') UI.refresh();
   }
   function killAll() { for (const e of enemies) if (!e.dead && !e.idle) killEnemy(e, { src: 'debug', dx: 1, dy: -0.4, x: e.x, y: e.y - 50 }, false, 0); }
-  function setUps(max) {
-    save.up = max ? Object.fromEntries(UPGRADES.map(u => [u.id, u.max])) : {}; persist();
+  function setUps(what) { // 'gun' (equipped) | 'guns' | 'hero' | 'reset'
+    const maxGun = id => { save.wup[id] = Object.fromEntries(WUP.list.map(u => [u.id, u.max])); };
+    if (what === 'gun') maxGun(save.eq); else if (what === 'guns') WEAPONS.forEach(w => maxGun(w.id));
+    else if (what === 'hero') save.up = Object.fromEntries(UPGRADES.map(u => [u.id, u.max]));
+    else { save.up = {}; save.wup = {}; }
+    persist();
     wep = computeWeapon();
     if (run) { player.maxHp = UP.hp(lv('hp')); player.hp = Math.min(player.hp, player.maxHp); }
     if (G.state === 'menu') UI.refresh();
@@ -79,7 +83,7 @@ if (DEBUG) (() => {
       <h4>RUN</h4><div class="g">${b('kill', 'KILL ALL')}${b('clear', 'CLEAR WAVE')}${b('win', 'WIN ERA')}${b('heal', 'HEAL')}${b('die', 'DIE', 'red')}${b('coins', '+100K COINS')}</div>
       <h4>SPAWN</h4><div class="g">${Object.keys(ARCH).map(t => b('spawn:' + t, era.foes[t].name)).join('')}</div>
       <h4>PERKS (this run)</h4><div class="g">${PERKS.map(p => b('perk:' + p.id, `${p.icon} ${p.name}${P[p.id] ? ' ' + P[p.id] : ''}`, P[p.id] ? 'on' : '')).join('')}</div>
-      <h4>UPGRADES</h4><div class="g">${b('upmax', 'MAX ALL')}${b('upreset', 'RESET ALL')}</div>
+      <h4>UPGRADES</h4><div class="g">${b('ups:gun', 'GUN MAX')}${b('ups:guns', 'ALL GUNS MAX')}${b('ups:hero', 'HERO MAX')}${b('ups:reset', 'RESET ALL')}</div>
       <h4>SOUND</h4><div class="g">${DSP.SFX.map(n => b('sfx:' + n, n)).join('')}</div>
       <h4>MUSIC</h4><div class="g">${DSP.SONGS.map(k => b('mus:' + k, k, mk && mk[0] === k ? 'sel' : '')).join('')}</div>
       <div class="g" style="margin-top:5px">${['MENU', 'FIGHT', 'BOSS'].map((l, i) => b('lay:' + i, l, mk && mk[1] === i ? 'sel' : '')).join('')}${b('musauto', 'AUTO', mk ? '' : 'on')}</div>
@@ -102,7 +106,7 @@ if (DEBUG) (() => {
       const e = makeEnemy(t, x); enemies.push(e); if (t === 'boss') { run.boss = e; UI.boss(e); }
     }),
     perk: needRun(id => addPerk(PERKS.find(p => p.id === id))),
-    upmax: () => setUps(true), upreset: () => setUps(false),
+    ups: setUps,
     sfx: n => { Sfx.init(); Sfx.play(n); },
     mus: k => { Sfx.init(); DBG.music = [k, DBG.music ? DBG.music[1] : 1]; }, lay: i => { Sfx.init(); DBG.music = [DBG.music ? DBG.music[0] : era.bg, +i]; },
     musauto: () => { DBG.music = null; },
