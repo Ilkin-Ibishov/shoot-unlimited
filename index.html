@@ -120,14 +120,21 @@ button:disabled { cursor: default; }
 .stats em { display: block; font-style: normal; font-size: 10px; margin-top: 3px; opacity: .85; }
 .stats em.rec { color: var(--yellow); opacity: 1; }
 .unlock { color: var(--yellow); margin-bottom: 12px; }
-.list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; text-align: left; }
-.wrow { display: flex; align-items: center; gap: 10px; background: var(--card); border: 3px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.mhead { display: flex; align-items: center; gap: 10px; margin: -4px -4px 6px 0; }
+.mhead h2 { margin: 0; font-size: clamp(20px, 6vh, 28px); }
+.mhead .coins { font-size: 15px; padding: 3px 12px 3px 8px; }
+.x { margin-left: auto; width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; background: #33405e; border: 3px solid var(--line); font-size: 15px; line-height: 1; display: grid; place-items: center; }
+.x:hover { filter: brightness(1.2); }
+.x:active { transform: scale(.92); }
+.list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr)); gap: 5px; text-align: left; }
+.wrow { display: flex; align-items: center; gap: 8px; background: var(--card); border: 3px solid var(--line); border-radius: 10px; padding: 3px 8px; min-width: 0; }
 .wrow.eq { border-color: var(--green); }
-.wic { flex: 0 0 64px; }
-.wbd { flex: 1; min-width: 0; }
+.wic { flex: 0 0 44px; }
+.wic svg { width: 100%; height: auto; display: block; }
+.wbd { flex: 1; min-width: 0; line-height: 1.2; }
 .wbd small { display: block; font-size: 10px; color: var(--yellow); }
-.wbd p { font-size: 11px; opacity: .7; font-family: system-ui, sans-serif; }
-.wrow .btn { flex: 0 0 auto; font-size: 12px; padding: 8px 10px; }
+.wbd p { font-size: 10px; opacity: .7; font-family: system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wrow .btn { flex: 0 0 auto; font-size: 11px; padding: 6px 8px; box-shadow: 0 3px 0 var(--line); }
 .coins.inl { display: inline-flex; }
 .btn.wide { width: 100%; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

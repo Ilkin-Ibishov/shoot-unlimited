@@ -109,9 +109,10 @@ const UI = {
     this.cls('hud', 'low', p.hp < p.maxHp * 0.3);
   },
   // ===== modals =====
-  open(html, onClick) {
+  open(html, onClick, dismiss) { // dismiss: a tap on the backdrop closes it too
     $('panel').innerHTML = html; $('modal').classList.remove('hidden');
     $('panel').onclick = e => { if (e.target.closest('[data-close]')) { tap(); this.close(); return; } onClick && onClick(e); };
+    $('modal').onclick = e => { if (dismiss && e.target === e.currentTarget) { tap(); this.close(); } };
   },
   close() { $('modal').classList.add('hidden'); },
   arsenal() {
@@ -126,7 +127,7 @@ const UI = {
         : `<button class="btn gold" data-buy="${w.id}" ${save.coins < w.price ? 'disabled' : ''}>${coinIc}${fmt(w.price)}</button>`;
       return `<div class="wrow${eq ? ' eq' : ''}"><div class="wic">${gunSvg(w)}</div><div class="wbd"><b>${w.name}</b><small>${stats}</small><p>${w.desc}</p></div>${act}</div>`;
     }).join('');
-    this.open(`<h2>ARSENAL</h2><div class="coins inl">${coinIc}<b>${fmt(save.coins)}</b></div><div class="list">${rows}</div><button class="btn wide" data-close>CLOSE</button>`, e => {
+    this.open(`<div class="mhead"><h2>ARSENAL</h2><div class="coins inl">${coinIc}<b>${fmt(save.coins)}</b></div><button class="x" data-close aria-label="Close">✕</button></div><div class="list">${rows}</div>`, e => {
       const b = e.target.closest('button'); if (!b || b.disabled) return;
       if (b.dataset.eq) { tap(); save.eq = b.dataset.eq; }
       else if (b.dataset.buy) {
@@ -134,7 +135,7 @@ const UI = {
         save.coins -= w.price; save.owned.push(w.id); save.eq = w.id; Sfx.play('buy');
       } else return;
       persist(); wep = computeWeapon(); this.refresh(); this.arsenal();
-    });
+    }, true);
   },
   settings() {
     const s = save.set, st = save.stats, tg = (k, label, on) => `<button class="btn tg${on ? ' on' : ''}" data-tg="${k}">${label}: ${on ? 'ON' : 'OFF'}</button>`;
