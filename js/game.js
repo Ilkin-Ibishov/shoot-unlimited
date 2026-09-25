@@ -71,7 +71,7 @@ const G = { state: 'menu', era: Math.min(save.unlocked, ERAS.length) - 1, time: 
 const cam = { x: 0, shake: 0, z: 1, lx: 0 };
 const player = { x: 160, y: 440, aim: -0.06, hp: 100, maxHp: 100, ammo: 6, reload: 0, cd: 0, recoil: 0, phase: 0, walkTo: 0,
   kick: 0, kickCd: 0, hurt: 0, heat: 0, over: false, beamOn: false, beamLen: 0, dead: false, flash: 0, mflash: 0, pts: [] };
-const PLAYER_LOOK = { k: '#f1c27d', s: '#2b3a5c', p: '#1f2840', a: '#2b3a5c' }, PLAYER_OPT = { deco: 'tactical', face: 'hero' };
+const PLAYER_LOOK = { k: '#dba57a', s: '#34435e', p: '#2b3446', a: '#34435e' }, PLAYER_OPT = { deco: 'tactical', face: 'hero' };
 let run = null, wep = null, era = ERAS[0], bg = [];
 const enemies = [], ragdolls = [], bullets = [], eprojs = [], parts = [], texts = [], crates = [], nades = [], coinFx = [];
 const camLead = () => Math.min(170, viewW * 0.17);
@@ -126,7 +126,7 @@ function poseEnemy(e) {
   else {
     const arms = e.F.arms || 'swing', n = e.pts[1];
     const aim = n ? Math.atan2(player.y - 60 - n[1], player.x - n[0]) : Math.PI;
-    poseHuman(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time + e.phase, e.walking ? (e.F.legs || 'walk') : 'stand', arms, e.act, aim, e.flinch);
+    poseHuman(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time + e.phase, e.walking ? (e.F.legs || 'walk') : 'stand', arms, e.act, aim, e.flinch, e.F.face === 'zombie');
   }
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
   for (const q of e.pts) { if (q[0] < x0) x0 = q[0]; if (q[0] > x1) x1 = q[0]; if (q[1] < y0) y0 = q[1]; if (q[1] > y1) y1 = q[1]; }
@@ -234,7 +234,7 @@ function eraCleared() {
 function playerDie() {
   const p = player; if (p.dead) return;
   p.dead = true; run.state = 'dead'; run.endT = 1.8; G.slowmo = 1;
-  const rd = makeRagdoll('human', p.pts, PLAYER_LOOK, 1, 1, 'mask', -150, -200);
+  const rd = makeRagdoll('human', p.pts, PLAYER_LOOK, 1, 1, 'hero', -150, -200);
   rd.opt = PLAYER_OPT; pushRagdoll(rd, p.x, p.y - 80, -300, -250, 40); addRagdoll(rd);
   bleed(null, p.x, p.y - 60, -1, -0.3, 16);
   Sfx.play('die'); save.stats.deaths++;

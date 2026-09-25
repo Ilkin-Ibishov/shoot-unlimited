@@ -19,12 +19,20 @@ realistic look. **Done: the Jurassic dinos** (Raptor, Bonecrusher, T-Rex) in `js
 `dinoHead`; picked by `dino: 'raptor' | 'crusher' | 'rex'` on the foe in `js/data.js`. The user liked it and wants the
 same treatment for the other characters, one group at a time.
 
-**Done: humans** (`drawHuman`, `humanHead`, `drawHeld` in `js/engine.js`; old path kept behind `opt.old`/`GFX_LOW`; perf vs old on real GPU NOT yet measured, CPU raster ~1.8x).
+**Done: humans, "Earn to Die" style** (the user picked it after a style study against Earn to Die Rogue screenshots):
+`drawHuman`, `humanHead` in `js/engine.js`; `opt.old` / `GFX_LOW` still draw the old boxy rig. What defines the look:
+lanky profile limbs (`HLIMB`) and torso (`HT_Z` slim zombies, `HT_H` broad living), thin dark ink `INKD` 0.75 px
+stroked under each layer, two-tone cel shading (dark strip on the back edge, light strip on the front), thin fold/crease
+lines, rolled sleeves, torn denim. Zombies are hunched (`poseHuman(..., hunch)` when `face === 'zombie'`: torso bent,
+head thrust forward, back arm dangling), bald, with glowing yellow eyes; the head only follows 30 % of the neck tilt
+so the face looks ahead. The player (`hat: 'hero'`) has a beard and a red headband with fluttering tails. Style study
+page (not shipped): `tools/out/styles.html?s=3` + `styles-d.js` (gitignored).
+Perf: JS path building 0.09 ms per human; CPU raster ~3x the old rig, GPU not yet measured (pane was hidden). A glow
+sprite with 'lighter' on the eyes cost 4x the whole zombie in raster: use a translucent halo ellipse instead.
 
-**Still old style (item 1 below is now done, only its notes remain):**
-1. Humans: every walker/runner/ranged/exploder/shield/brute/boss in all eras, and the player. Drawing lives in
-   `drawRig` (tapered bones via `taper`), `drawHead` (square head, `hat`s, `face`s), `outfit` (`deco`s); held items
-   are `drawHeld` in `js/render.js`, the player is `drawPlayer` in `js/render.js`, the guns are `GUNS` / `drawGun`.
+**Still old style:**
+1. Player guns (`GUNS` / `drawGun`, boxes with a thin ink border now) and held items (`drawHeld`) are not redrawn in the
+   new style yet.
 2. Jackal (Egypt) and Cyber Hound (Neon Future): they use the raptor rig without a `dino` kind, so they still get the
    old raptor look. They need their own designs (a dog / robot-dog shape on the same points).
 3. Flyers (`FLY`, `drawFlyer`: gargoyle, ptero, bat, vulture, parrot, drone): cartoon, INK outlines.

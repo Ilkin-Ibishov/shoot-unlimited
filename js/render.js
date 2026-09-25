@@ -589,13 +589,13 @@ function drawEnemy(c, e) {
 function drawPlayer(c) {
   const p = player, pts = p.pts;
   const f = playerFacing();
-  drawRig(c, 'human', pts, PLAYER_LOOK, 1, f, p.flash > 0, 'mask', -1, undefined, PLAYER_OPT);
+  drawRig(c, 'human', pts, PLAYER_LOOK, 1, f, p.flash > 0, 'hero', -1, undefined, PLAYER_OPT);
   const h = pts[6], a = f > 0 ? gunAim() : Math.PI - 0.35; // low-ready while jogging left
   c.save(); c.translate(h[0] - Math.cos(a) * p.recoil * 4, h[1] - Math.sin(a) * p.recoil * 4); c.rotate(a);
   if (f < 0) c.scale(1, -1); // keep the grip under the barrel when pointing left
   drawGun(c, wep.id, wep.color, wep.id === 'laser' ? (p.over ? '#ff5a5a' : '#39e1ff') : '#9ff3ff');
   c.restore();
-  c.beginPath(); c.arc(h[0], h[1], 3.1, 0, TAU); c.fillStyle = PLAYER_LOOK.k; c.fill(); c.strokeStyle = shade(PLAYER_LOOK.k, 0.34); c.lineWidth = 1.6; c.stroke();
+  c.beginPath(); c.arc(h[0], h[1], 3.1, 0, TAU); c.fillStyle = '#26282e'; c.fill(); c.strokeStyle = INKD; c.lineWidth = 0.75; c.stroke();
   const [mx, my] = muzzle();
   if (p.mflash > 0) {
     c.save(); c.translate(mx, my); c.rotate(a); c.fillStyle = '#fff1a8';
