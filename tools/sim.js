@@ -93,33 +93,55 @@ function harness() {
     return out;
   }
 
-  // sustained dps x crowd factor (enemies come in a line, so pierce/blast hit several)
-  const score = w => (w.beam ? w.dps * w.heat / (w.heat + w.reload) : w.dmg * w.pellets * w.rate * w.mag / (w.mag + w.rate * w.reload))
-    * (1 + Math.min(w.pierce, 4) * 0.3) * (w.explode ? 2 : 1);
+  // gun power at given levels: sustained single-target dps (pierce/blast bonuses did not show up in play tests); same model as tools/econ.js
+  const gunPow = (w, L = save.wup[w.id] || {}) => {
+    const F = WUP.fx, crowd = 1;
+    if (w.beam) { const dps = w.dps * F.dmg(L.dmg || 0), heat = w.heat * F.mag(L.mag || 0), rel = w.reload * F.reload(L.reload || 0); return dps * heat / (heat + rel) * crowd; }
+    const dmg = w.dmg * F.dmg(L.dmg || 0), rate = w.rate * F.rate(L.rate || 0) * BAL.fireRate, mag = Math.max(1, Math.round(w.mag * F.mag(L.mag || 0))), rel = w.reload * F.reload(L.reload || 0);
+    return dmg * w.pellets * mag / (mag / rate + rel) * crowd;
+  };
+  // relative value of one more character level (gun levels are valued by their real power gain)
+  const CHAR = { hp: l => 0.5 * 0.15 / (1 + 0.15 * l), income: l => 0.3 * 0.08 / (1 + 0.08 * l), crit: l => 0.8 * 0.02 / (1 + 0.02 * l), head: l => S.pHead * 0.15 / (2 + 0.15 * l) };
   function shop(avgIncome) {
-    const cur = WEAPONS.find(w => w.id === save.eq);
-    for (const w of WEAPONS) if (save.owned.includes(w.id) && score(w) > score(WEAPONS.find(x => x.id === save.eq))) save.eq = w.id;
-    const next = WEAPONS.filter(w => !save.owned.includes(w.id) && save.unlocked > w.era && score(w) > score(cur) * 1.25).sort((a, b) => a.price - b.price)[0];
-    if (next && save.coins >= next.price) { save.coins -= next.price; save.owned.push(next.id); save.eq = next.id; }
-    else if (next && next.price <= avgIncome * 3) return; // save up for it
-    const W = { dmg: 1, rate: 0.8, hp: 0.8, income: 0.5, mag: 0.35, reload: 0.35, crit: 0.3, head: S.pHead };
-    for (;;) {
-      let best = null, bs = 0;
-      for (const u of UPGRADES) { const l = lv(u.id), c = upCost(u, l); if (l < u.max && c <= save.coins && W[u.id] / c > bs) { bs = W[u.id] / c; best = u; } }
-      if (!best) break;
-      save.coins -= upCost(best, lv(best.id)); save.up[best.id] = lv(best.id) + 1;
+    const owned = WEAPONS.filter(w => save.owned.includes(w.id)), best = () => owned[owned.length - 1]; // like a player: use the newest gun (the ladder makes it the better one)
+    const next = WEAPONS.find(w => !save.owned.includes(w.id) && save.unlocked > w.era); // the ladder is in price order
+    if (next) {
+      if (save.coins >= next.price) { save.coins -= next.price; save.owned.push(next.id); owned.push(next); }
+      else if (next.price <= avgIncome * 3) { save.eq = best().id; return; } // save up for it
     }
+    const main = owned[owned.length - 1], L = save.wup[main.id] || (save.wup[main.id] = {}); // newest gun gets the investment
+    for (;;) {
+      let pick = null, bs = 0; const p0 = gunPow(main);
+      for (const u of WUP.list) {
+        const l = L[u.id] || 0, c = wupCost(main, u, l); if (l >= u.max || c > save.coins) continue;
+        const g = gunPow(main, { ...L, [u.id]: l + 1 }) / p0 - 1; if (g / c > bs) { bs = g / c; pick = [L, u.id, c]; }
+      }
+      for (const u of UPGRADES) { const l = lv(u.id), c = upCost(u, l); if (l < u.max && c <= save.coins && CHAR[u.id](l) / c > bs) { bs = CHAR[u.id](l) / c; pick = [save.up, u.id, c]; } }
+      if (!pick) break;
+      save.coins -= pick[2]; pick[0][pick[1]] = (pick[0][pick[1]] || 0) + 1;
+    }
+    save.eq = best().id;
   }
 
+  // weapon test: one gun at a fixed level, fixed character levels, R runs of one era -> progress + damage per second
+  globalThis.wtest = (skill, id, era, level, R) => {
+    S = skill; let dmg = 0; const o = [];
+    wrap('hurtEnemy', (e, d, x) => { if (!e.dead && (x.src === 'bullet' || x.src === 'beam' || x.src === 'blast')) dmg += Math.min(d, e.hp); });
+    for (let i = 0; i < R; i++) {
+      Object.assign(save, { coins: 0, up: { hp: 3 + 2 * era, crit: 1 + era, head: 1 + era }, wup: { [id]: { dmg: level, rate: level, mag: level, reload: level } }, owned: [id], eq: id, unlocked: era + 1 });
+      dmg = 0; const r = playRun(era); o.push({ pct: r.pct, won: r.won, dps: dmg / r.t });
+    }
+    return o;
+  };
   globalThis.campaign = (skill, maxRuns) => {
     S = skill;
-    Object.assign(save, { coins: 0, up: {}, owned: ['pistol'], eq: 'pistol', unlocked: 1, best: [], endless: 0 });
+    Object.assign(save, { coins: 0, up: {}, wup: {}, owned: ['pistol'], eq: 'pistol', unlocked: 1, best: [], endless: 0 });
     const log = []; let inc = 0;
     for (let i = 0; i < maxRuns; i++) {
       shop(inc);
       const e = Math.min(save.unlocked, ERAS.length) - 1, r = playRun(e);
       inc = inc ? inc * 0.7 + r.coins * 0.3 : r.coins;
-      r.lv = { ...save.up }; r.weapon = save.eq; log.push(r);
+      r.lv = { ...save.up }; r.wlv = JSON.parse(JSON.stringify(save.wup)); r.weapon = save.eq; log.push(r);
       if (r.won && e === ERAS.length - 1) break;
     }
     return log;
@@ -139,7 +161,7 @@ function report(name, logs) {
     const cleared = per.filter(a => a.some(r => r.won)).length;
     rows.push({ e, runs: runs.reduce((a, b) => a + b) / per.length, cleared: `${cleared}/${N}`, firstPct: first.reduce((s, r) => s + r.pct, 0) / first.length,
       firstWin: first.filter(r => r.won).length, min: all.reduce((s, r) => s + r.t, 0) / per.length / 60, runT: avg(r => r.t), acc: gun(r => r.hits / r.shots),
-      hs: gun(r => r.bHeads / Math.max(1, r.hits)), dmgLv: avg(r => r.lv.dmg || 0), minHp: avg(r => r.minHp), deaths: all.filter(r => !r.won).length / per.length,
+      hs: gun(r => r.bHeads / Math.max(1, r.hits)), dmgLv: avg(r => (r.wlv && r.wlv[r.weapon] || {}).dmg || 0), minHp: avg(r => r.minHp), deaths: all.filter(r => !r.won).length / per.length,
       kick: avg(r => (r.src.kick || 0) / Math.max(1, r.kills)) });
   }
   const tot = logs.map(l => l.reduce((s, r) => s + r.t, 0) / 3600), done = logs.filter(l => l.at(-1).won && l.at(-1).era === 6).length;
@@ -153,9 +175,21 @@ const { Worker, isMainThread, parentPort, workerData } = require('worker_threads
 if (!isMainThread) {
   const g = makeGame(+(A.w || 844), +(A.h || 390));
   if (workerData.noPerks) g.NO_PERKS = true;
-  parentPort.postMessage(g.campaign(SKILLS[workerData.sk], workerData.maxRuns));
+  parentPort.postMessage(workerData.wt ? g.wtest(SKILLS[workerData.sk], workerData.wt.id, workerData.wt.era, workerData.wt.lv, workerData.wt.R) : g.campaign(SKILLS[workerData.sk], workerData.maxRuns));
 } else {
   const n = +(A.n || 4), maxRuns = +(A.maxRuns || 150), skills = A.skill && A.skill !== 'all' ? [A.skill] : Object.keys(SKILLS);
+  if (A.wtest !== undefined) { // node tools/sim.js wtest=<era 1-7> [lv=5] [R=6] [skill=avg]: every gun in that era
+    const era = +A.wtest - 1, lvl = +(A.lv ?? 5), R = +(A.R || 6), sk = A.skill && A.skill !== 'all' ? A.skill : 'avg';
+    const ids = (A.guns || 'pistol,smg,shotgun,rifle,sniper,rocket,laser').split(',');
+    Promise.all(ids.map(id => new Promise((res, rej) => {
+      const w = new Worker(__filename, { argv: process.argv.slice(2), workerData: { sk, wt: { id, era, lv: lvl, R } } });
+      w.once('message', o => res({ id, o })); w.once('error', rej);
+    }))).then(all => {
+      console.log(`weapon test: era ${era + 1}, gun level ${lvl}, ${R} runs, ${sk} bot`);
+      for (const { id, o } of all) console.log(id.padEnd(8), 'progress', (o.reduce((a, r) => a + r.pct, 0) / o.length).toFixed(0).padStart(3) + '%', ' wins', o.filter(r => r.won).length + '/' + o.length, ' dmg/s', (o.reduce((a, r) => a + r.dps, 0) / o.length).toFixed(0));
+    });
+    return;
+  }
   const jobs = skills.flatMap(sk => Array.from({ length: n }, () => new Promise((res, rej) => {
     const w = new Worker(__filename, { argv: process.argv.slice(2), workerData: { sk, maxRuns, noPerks: A.perks === 'off' } });
     w.once('message', log => res({ sk, log })); w.once('error', rej);

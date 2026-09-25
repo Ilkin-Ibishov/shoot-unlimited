@@ -19,7 +19,7 @@ const DEBUG = /[?&]debug\b/.test(location.search) && !/crazygames/.test((locatio
 const DBG = { god: false, inf: false, oneHit: false, speed: 1, music: null }; // debug switches (music: [key, layer])
 const SAVE_KEY = DEBUG ? 'shoot-unlimited-debug' : 'shoot-unlimited-v1';
 function readSave(raw) {
-  const d = { coins: 0, up: {}, owned: ['pistol'], eq: 'pistol', unlocked: 1, best: [], endless: 0,
+  const d = { coins: 0, up: {}, wup: {}, owned: ['pistol'], eq: 'pistol', unlocked: 1, best: [], endless: 0,
     set: { sfx: true, shake: true, auto: true, aim: 'swipe', sens: 1, gfx: 'high', blood: true, music: true }, stats: { runs: 0, kills: 0, deaths: 0, heads: 0 } };
   try { const s = JSON.parse(raw); if (s) return { ...d, ...s, set: { ...d.set, ...s.set }, stats: { ...d.stats, ...s.stats } }; } catch (e) { }
   return d;
@@ -31,6 +31,7 @@ function persist() {
   Platform.store(v); // CrazyGames cloud save (no-op elsewhere)
 }
 const lv = id => save.up[id] || 0;
+const wl = (id, w = save.eq) => (save.wup[w] || {})[id] || 0; // weapon upgrade level of gun w
 
 // ===== terrain: stepped tile columns, generated lazily in both directions =====
 function makeGen(seed, flat) { return { r: mulberry32(seed), y: 420, mode: 0, left: flat, dir: 0, stepW: 1, sub: 1 }; }
@@ -69,11 +70,12 @@ function computeWeapon() {
   const d = WEAPONS.find(w => w.id === save.eq) || WEAPONS[0], P = run ? run.perks : {};
   const big = 1 + 0.5 * (P.bigmag || 0);
   return { ...d,
-    dmg: (d.dmg || 0) * UP.dmg(lv('dmg')) * BAL.bulletDmg, dps: (d.dps || 0) * UP.dmg(lv('dmg')) * BAL.bulletDmg,
-    rate: d.rate * UP.rate(lv('rate')) * BAL.fireRate,
-    mag: Math.max(1, Math.round(d.mag * UP.mag(lv('mag')) * big)),
-    heat: (d.heat || 0) * UP.mag(lv('mag')) * big,
-    reload: d.reload * UP.reload(lv('reload')) / (1 + 0.35 * (P.quick || 0)),
+    dmg: (d.dmg || 0) * WUP.fx.dmg(wl('dmg')) * BAL.bulletDmg, dps: (d.dps || 0) * WUP.fx.dmg(wl('dmg')) * BAL.bulletDmg,
+    rate: d.rate * WUP.fx.rate(wl('rate')) * BAL.fireRate,
+    mag: Math.max(1, Math.round(d.mag * WUP.fx.mag(wl('mag')) * big)),
+    heat: (d.heat || 0) * WUP.fx.mag(wl('mag')) * big,
+    reload: d.reload * WUP.fx.reload(wl('reload')) / (1 + 0.35 * (P.quick || 0)),
+    melee: d.tier * WUP.fx.dmg(wl('dmg')), // kick + grenade scale with the gun's tier
     crit: UP.crit(lv('crit')), head: UP.head(lv('head')) * (1 + 0.25 * (P.hunter || 0)) };
 }
 
@@ -283,7 +285,7 @@ function updatePlayer(pdt) {
     const near = e => !e.dead && e.type !== 'flyer' && (e.x - p.x < 70 || (e.engaged && e.type !== 'ranged'));
     if (enemies.some(near)) {
       p.kickCd = BAL.kickCd; p.kick = 0.25; Sfx.play('kick'); cam.shake = Math.max(cam.shake, 6);
-      for (const e of enemies) if (near(e)) { const c = e.pts[2]; hurtEnemy(e, BAL.kickDmg * UP.dmg(lv('dmg')), { src: 'kick', dx: 1, dy: -0.3, x: c[0], y: c[1], knock: BAL.kickKnock }); }
+      for (const e of enemies) if (near(e)) { const c = e.pts[2]; hurtEnemy(e, BAL.kickDmg * wep.melee, { src: 'kick', dx: 1, dy: -0.3, x: c[0], y: c[1], knock: BAL.kickKnock }); }
     }
   }
   posePlayer();
@@ -659,7 +661,7 @@ function updateNades(dt) {
     n.vy += 1400 * dt; n.x += n.vx * dt; n.y += n.vy * dt; n.rot += n.vx * dt * 0.05; n.t -= dt;
     const g = groundY(n.x);
     if (n.y > g) { n.y = g - 1; if (n.vy > 0) n.vy *= -0.4; n.vx *= 0.7; }
-    if (n.t <= 0) { nades.splice(i, 1); explode(n.x, n.y, 150, BAL.nadeDmg * UP.dmg(lv('dmg')), 0); }
+    if (n.t <= 0) { nades.splice(i, 1); explode(n.x, n.y, 150, BAL.nadeDmg * wep.melee, 0); }
   }
 }
 function updateCrates(dt) {
