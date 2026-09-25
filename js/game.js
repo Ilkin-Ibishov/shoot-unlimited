@@ -397,7 +397,7 @@ function killEnemy(e, o, head, d) {
   e.dead = true; r.kills++; r.killedW++; if (head) r.heads++; r.combo++; r.comboT = 2.5; addBT(0.03);
   const blast = o.src === 'blast', imp = (250 + (o.knock || 200)) * (blast ? 1 : 0.55);
   const vx = (o.dx || 0) * imp, vy = (o.dy || 0) * imp - (blast ? 350 : 140);
-  if (e.type === 'exploder') explode(e.pts[2][0], e.pts[2][1], 110 * e.s, ARCH.walker.hp * r.hpMul * 3, 0, true);
+  if (e.type === 'exploder') explode(e.pts[2][0], e.pts[2][1], 110 * e.s, ARCH.walker.hp * r.hpMul * BAL.exploderBlast, 0, true);
   else {
     const rd = makeRagdoll(e.rig, e.pts, e.look, e.s, e.f, e.hat === 'helmet' && !e.helmet ? null : e.hat, e.walking ? -e.speed * 0.5 : 0, 0);
     rd.opt = e.F; pushRagdoll(rd, o.x ?? e.x, o.y ?? e.y - 50, vx, vy, 30 * e.s);
@@ -423,7 +423,7 @@ function killEnemy(e, o, head, d) {
 }
 function selfDestruct(e) {
   e.dead = true; run.killedW++;
-  explode(e.pts[2][0], e.pts[2][1], 100 * e.s, ARCH.walker.hp * run.hpMul * 3, e.dmg, true);
+  explode(e.pts[2][0], e.pts[2][1], 100 * e.s, ARCH.walker.hp * run.hpMul * BAL.exploderBlast, e.dmg, true);
   burst(e.x, e.y - 50, e.look.s, 12, 380);
 }
 function bossAI(e, dt) {
