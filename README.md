@@ -17,6 +17,19 @@ node tools/sim.js skill=all n=3
 ```
 Oyunun real kodunu ekransız işlədir. İnsan kimi nişan alan bot (casual / avg / pro) bütün kampaniyanı oynayır: run → mağaza → run. Hər era üçün neçə run lazım olduğunu, ilk cəhdin faizini, ölümləri və minimum HP-ni göstərir. Bütün balans rəqəmləri `js/data.js`-də (`BAL`, `ARCH`, `ERAS`, `UPGRADES`, `WEAPONS`) saxlanılır. Hər dəyişiklikdən sonra simulyatoru yenidən işə salın.
 
+## Debug rejimi
+Oyunu `?debug` ilə açın: `http://localhost:8123/?debug` və ya https://ilkin-ibishov.github.io/shoot-unlimited/?debug
+- Ayrı yaddaş: əsl irəliləyişinizə toxunmur. Bütün eralar və silahlar açıq, 10M coin.
+- 🐞 düyməsi və ya ` düyməsi ilə açılan panel:
+  - istənilən era və dalğadan (boss daxil) başlamaq;
+  - raund içində silah dəyişmək;
+  - god mode, sonsuz sursat/cooldown, bir zərbəyə öldürmə;
+  - oyun sürəti 0.1x–4x;
+  - düşmən çağırmaq, dalğanı/eranı keçmək;
+  - perk və upgrade əlavə etmək;
+  - bütün səsləri və musiqi laylarını dinləmək.
+- CrazyGames-də heç vaxt aktivləşmir.
+
 ## Səs alətləri
 ```
 node tools/listen.js sfx all        # bütün səs effektlərinin spektroqram vərəqi + ölçülər
@@ -49,4 +62,5 @@ Bütün səslər və musiqi `js/dsp.js`-də koddan yaradılır (səs faylı yoxd
 - `js/game.js`: dünya, döyüş, dalğalar, input; `step()` bir oyun addımıdır (simulyator da onu istifadə edir)
 - `js/render.js`: bütün çəkiliş (fon, relyef, personajlar, effektlər)
 - `js/ui.js`: menyu, HUD, modallar
+- `js/debug.js`: `?debug` paneli (test üçün)
 - `js/platform.js`: CrazyGames SDK körpüsü (reklam, gameplay siqnalları, bulud yaddaşı); başqa saytlarda heç nə etmir

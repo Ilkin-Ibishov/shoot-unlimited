@@ -14,7 +14,10 @@ function resize() {
 }
 
 // ===== save =====
-const SAVE_KEY = 'shoot-unlimited-v1';
+// ?debug = test build: own save slot, no portal SDK, debug panel (js/debug.js). Never on CrazyGames.
+const DEBUG = /[?&]debug\b/.test(location.search) && !/crazygames/.test((location.hostname || '') + (document.referrer || ''));
+const DBG = { god: false, inf: false, oneHit: false, speed: 1, music: null }; // debug switches (music: [key, layer])
+const SAVE_KEY = DEBUG ? 'shoot-unlimited-debug' : 'shoot-unlimited-v1';
 function readSave(raw) {
   const d = { coins: 0, up: {}, owned: ['pistol'], eq: 'pistol', unlocked: 1, best: [], endless: 0,
     set: { sfx: true, shake: true, auto: true, aim: 'swipe', sens: 1, gfx: 'high', blood: true, music: true }, stats: { runs: 0, kills: 0, deaths: 0, heads: 0 } };
@@ -22,7 +25,6 @@ function readSave(raw) {
   return d;
 }
 const save = readSave((() => { try { return localStorage.getItem(SAVE_KEY); } catch (e) { return null; } })());
-if (location.search.includes('rich')) save.coins += 1e6; // dev cheat
 function persist() {
   if (G.wiped) return; const v = JSON.stringify(save);
   try { localStorage.setItem(SAVE_KEY, v); } catch (e) { }
@@ -349,7 +351,7 @@ function toggleBT() {
 }
 function addBT(v) { run.bt = Math.min(1, run.bt + v * (1 + (run.perks.focus || 0))); }
 function hurtPlayer(d) {
-  const p = player; if (p.dead || p.hurt > G.time) return;
+  const p = player; if (p.dead || p.hurt > G.time || DBG.god) return;
   p.hp -= d; p.hurt = G.time + 0.2; p.flash = 0.1; G.hurtFx = 0.4;
   cam.shake = Math.max(cam.shake, 9); Sfx.play('hurt');
   popText(p.x, p.y - 110, '-' + fmt(Math.max(1, d)), '#ff5a5a', 18);
@@ -366,7 +368,7 @@ function hurtEnemy(e, dmg, o) {
     else mult = wep.head;
   }
   if (o.src === 'bullet' && Math.random() < wep.crit) { crit = true; mult *= 2; }
-  const d = dmg * mult;
+  const d = DBG.oneHit ? Math.max(dmg * mult, e.hp) : dmg * mult;
   e.hp -= d; e.flash = 0.07; e.flinch = Math.min(0.6, e.flinch + (o.src === 'burn' || o.src === 'beam' ? 0.04 : 0.3));
   if (o.knock) e.kx += o.dx * o.knock * BAL.knock * (e.type === 'boss' || e.type === 'brute' ? 0.25 : 1);
   if (o.src === 'beam') { e.acc += d; if (e.accT <= 0) e.accT = 0.3; }
@@ -719,12 +721,13 @@ function frame(now) {
   const rdt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
   step(rdt);
   Platform.gameplay(G.state === 'play');
-  Music.set(era.bg, G.state !== 'play' ? 0 : run && run.boss ? 2 : 1);
+  Music.set(...DBG.music || [era.bg, G.state !== 'play' ? 0 : run && run.boss ? 2 : 1]);
   render();
   UI.tick();
 }
 // one simulation tick (real seconds); shared with tools/sim.js so balance tests run the exact game loop
 function step(rdt) {
+  rdt *= DBG.speed;
   G.time += rdt;
   let ts = 1;
   if (G.hitstop > 0) { G.hitstop -= rdt; ts = 0.05; }

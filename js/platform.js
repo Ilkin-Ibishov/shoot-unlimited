@@ -5,7 +5,7 @@ const Platform = {
   sdk: null, ads: false, mute: false, playing: false, inAd: false,
   // loads the SDK only on CrazyGames (or with ?cg for local testing), then hands the cloud save to `onSave`
   async init(onSave) {
-    if (!/crazygames/.test(location.hostname + document.referrer) && !location.search.includes('cg')) return;
+    if (DEBUG || (!/crazygames/.test(location.hostname + document.referrer) && !location.search.includes('cg'))) return;
     try {
       await new Promise((ok, fail) => { const s = document.createElement('script'); s.src = 'https://sdk.crazygames.com/crazygames-sdk-v3.js'; s.onload = ok; s.onerror = fail; document.head.appendChild(s); });
       const sdk = window.CrazyGames.SDK; await sdk.init();
