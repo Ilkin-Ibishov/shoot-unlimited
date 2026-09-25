@@ -204,7 +204,6 @@ const DSP = (() => {
     return gain(out, o.vel ?? 1);
   }
   const marimba = (r, f, dur, vel) => { const tau = Math.min(0.55, 0.25 + 60 / f); return modal(r, [[f, 1, tau], [f * 3.93, 0.3, 0.1], [f * 9.2, 0.1, 0.025]], Math.max(dur + 0.3, tau * 4), { noise: 0.15, noiseHp: 600, vel }); };
-  const glock = (r, f, vel) => modal(r, [[f, 1, 0.9], [f * 2.76, 0.4, 0.35], [f * 5.4, 0.2, 0.12], [f * 8.93, 0.1, 0.05]], 3.5, { noise: 0.1, vel });
   const bell = (r, f, vel) => modal(r, [[f * 0.5, 0.35, 2.2], [f, 1, 1.8], [f * 1.19, 0.5, 1.2], [f * 1.5, 0.35, 0.9], [f * 2, 0.4, 0.7], [f * 2.52, 0.25, 0.5], [f * 3.35, 0.15, 0.3]], 7, { noise: 0.2, vel });
   const plate = (r, f, dur, vel) => modal(r, [[f, 1, 0.35], [f * 1.505, 0.7, 0.28], [f * 2.157, 0.6, 0.22], [f * 2.708, 0.45, 0.18], [f * 3.49, 0.35, 0.14], [f * 4.3, 0.25, 0.1], [f * 5.9, 0.18, 0.07]], dur, { noise: 0.8, noiseHp: 3000, vel });
   function horn(r, f, dur, o = {}) { // three slightly detuned FM brass voices, darkened
@@ -288,7 +287,7 @@ const DSP = (() => {
     }
     { // thump: low chirp whose half-cycles lengthen (measured muzzle-blast shape)
       let ph = 0; const f0 = J(o.th0 ?? 140), f1 = J(o.th1 ?? 45), tau = J(o.thTau ?? 0.05);
-      for (let i = 0; i < Math.min(out.length, secs(tau * 7)); i++) {
+      for (let i = 0; i < Math.min(out.length, secs(tau * 11)); i++) { // run it out to -95 dB: a cut thump is a click
         const t = i / SR; ph += TAU * (f1 + (f0 - f1) * Math.exp(-t / 0.015)) / SR;
         out[i] += Math.sin(ph) * (o.thump ?? 0.8) * 0.55 * Math.exp(-t / tau);
       }
@@ -308,9 +307,9 @@ const DSP = (() => {
     pistol:  { crack: 1, crackHp: 1800, lp0: 4200, lp1: 800, tau: 0.034, thump: 0.8, th0: 150, th1: 50, thTau: 0.045, mech: [[0.012, 3200, 0.22]], drive: 2.4, len: 1.0 },
     smg:     { crack: 0.8, crackHp: 2200, lp0: 5000, lp1: 1100, tau: 0.02, thump: 0.5, th0: 170, th1: 60, thTau: 0.028, mech: [[0.008, 3800, 0.12]], drive: 2, len: 0.55, wet: 0.08, room: 0.55 },
     rifle:   { crack: 1.4, crackHp: 1500, lp0: 5600, lp1: 900, tau: 0.038, thump: 0.85, th0: 140, th1: 45, thTau: 0.05, mech: [[0.01, 2800, 0.18]], drive: 2.6, len: 0.9, wet: 0.12, room: 0.8 },
-    shotgun: { crack: 1.1, crackHp: 1000, lp0: 3200, lp1: 450, tau: 0.07, body: 2, thump: 1.3, th0: 120, th1: 38, thTau: 0.09, drive: 2.8, len: 1.4, wet: 0.2, mech: [[0.42, 1900, 0.45], [0.58, 2300, 0.55]], slide: [0.44, 0.12] },
+    shotgun: { crack: 1.1, crackHp: 1000, lp0: 3200, lp1: 450, tau: 0.07, body: 2, thump: 1, th0: 120, th1: 38, thTau: 0.07, drive: 2.8, len: 1.2, wet: 0.2 },
     sniper:  { crack: 1.8, crackHp: 1200, lp0: 6000, lp1: 700, tau: 0.06, body: 1.8, thump: 1.2, th0: 130, th1: 35, thTau: 0.08, drive: 3, len: 2.2, wet: 0.28, size: 0.85,
-               refl: [[0.12, 0.4, 2200], [0.27, 0.28, 1600], [0.48, 0.18, 1100], [0.8, 0.1, 800], [1.2, 0.05, 600]], mech: [[0.5, 2600, 0.3], [0.68, 2100, 0.35]], slide: [0.52, 0.08] },
+               refl: [[0.12, 0.4, 2200], [0.27, 0.28, 1600], [0.48, 0.18, 1100], [0.8, 0.1, 800], [1.2, 0.05, 600]] },
     eshot:   { crack: 0.3, crackHp: 2500, lp0: 2200, lp1: 500, tau: 0.05, thump: 0.6, th0: 110, th1: 40, thTau: 0.07, drive: 1.6, len: 1.2, wet: 0.35 }, // enemy gun: distant, muffled
   };
   function whoosh(r, len, f0, f1, f2, g = 1) { // band sweeping f0 -> f1 -> f2 with a bell-shaped level (air movement)
@@ -388,8 +387,17 @@ const DSP = (() => {
     for (let i = 0; i < out.length; i++) { const t = i / SR; ph += TAU * (f1 + (f0 - f1) * Math.exp(-t / 0.015)) / SR; out[i] = Math.sin(ph) * Math.exp(-t / tau) + l1.run(r() * 2 - 1) * 1.5 * Math.exp(-t / (tau * 0.35)); }
     return out;
   }
-  const coin = (r, f) => modal(r, [[f, 1, 0.09], [f * 1.43, 0.45, 0.06], [f * 2.19, 0.6, 0.05], [f * 2.87, 0.3, 0.035], [f * 3.61, 0.35, 0.03], [f * 5.1, 0.2, 0.02]], 0.25, { noise: 0.5, noiseHp: 5000, noiseTau: 0.002 });
-  const click3 = (r, f, a) => modal(r, [[f, 1, 0.012], [f * 1.6, 0.6, 0.007], [f * 2.4, 0.4, 0.004]], 0.06, { noise: 0.5, noiseHp: 3000, vel: a });
+  // foley blocks: a sharp mechanical snap, a textured friction scrape, a short inharmonic steel body
+  const snap = (r, hp, tau) => { const out = buf(tau * 8), F = bq('hp', hp); for (let i = 0; i < out.length; i++) out[i] = F.run(r() * 2 - 1) * Math.exp(-i / (tau * SR)); return out; };
+  function scrape(r, len, f0, f1) {
+    const out = buf(len), F = bq('bp', f0, 1.2), n = out.length, grain = secs(0.004); let g = 1;
+    for (let i = 0; i < n; i++) {
+      const u = i / n; if (!(i & 15)) F.set(f0 + (f1 - f0) * u, 1.2); if (!(i % grain)) g = 0.35 + 0.65 * r(); // rough surface
+      out[i] = F.run(r() * 2 - 1) * g * Math.sin(Math.PI * Math.min(1, u * 1.3)) * 2.5;
+    }
+    return out;
+  }
+  const steel = (r, f, tau) => modal(r, [[f, 1, tau], [f * 2.18, 0.6, tau * 0.7], [f * 3.4, 0.4, tau * 0.5], [f * 4.9, 0.25, tau * 0.35]], tau * 6 + 0.02, { noise: 0 });
   function withVerb(out, size, wet) { const [w] = verb(out, null, { size }); for (let i = 0; i < out.length; i++) out[i] += w[i] * wet; return out; }
   function reverseSwell(r, len) { // reversed reverb of a noise hit: the classic "suck-in"
     const x = buf(len); add(x, burstNoise(r, 1500, 0.5, 0.01, 0.05), 0, 1);
@@ -431,33 +439,50 @@ const DSP = (() => {
       add(out, filt(whoosh(r, 1, 1800, 600, 120), 'lp', 1500), 0.02, 0.5);
       return trimTail(norm(withVerb(drive(out, 1.6), 0.9, 0.35), -1));
     }],
-    magout: [2, r => { const out = buf(0.3); add(out, click3(r, 2600, 1)); add(out, filt(burstNoise(r, 2800, 1.6, 0.05, 0.2, 0.04), 'hp', 1500), 0.04, 0.3); return trimTail(norm(out, -3)); }],
-    reload: [2, r => { // magazine seated, slide back, slide forward
-      const out = buf(0.45); add(out, thud(r, 200, 120, 0.015, 600), 0, 0.5); add(out, click3(r, 1900, 1));
-      add(out, filt(burstNoise(r, 3000, 1.5, 0.04, 0.1, 0.02), 'hp', 1500), 0.1, 0.25); add(out, click3(r, 2400, 0.7), 0.17); add(out, click3(r, 2100, 1), 0.26);
-      return trimTail(norm(withVerb(out, 0.3, 0.05), -2));
+    magout: [2, r => { // release button, magazine slides out of the well, a little rattle as it leaves
+      const out = buf(0.4), J = (v, p = 0.06) => v * (1 + (r() * 2 - 1) * p);
+      add(out, snap(r, 2500, 0.0015), 0, 0.5); add(out, steel(r, J(2900), 0.012), 0, 0.25);
+      add(out, snap(r, 1800, 0.002), 0.03, 0.8); add(out, steel(r, J(1700), 0.02), 0.03, 0.4); add(out, thud(r, 260, 180, 0.012, 700), 0.03, 0.3);
+      add(out, scrape(r, 0.2, 1300, 2500), 0.05, 0.3);
+      for (let k = 0; k < 3; k++) add(out, steel(r, 2500 + r() * 2000, 0.008), 0.23 + k * 0.025 + r() * 0.01, 0.12);
+      return trimTail(norm(filt(out, 'lp', 7000, 0.7), -3));
     }],
-    click: [2, r => trimTail(norm(modal(r, [[1650 + r() * 100, 1, 0.012], [4100, 0.35, 0.006]], 0.06, { noise: 0.3, noiseTau: 0.001 }), -3))],
-    coin: [4, r => { // pickup: one short, warm wooden note (pentatonic, so quick pickups sound like a little run), no metal
-      const f = [1046.5, 1174.7, 1318.5, 1568][(r() * 4) | 0], mallet = filt(burstNoise(r, 900, 0.6, 0.0015, 0.02), 'lp', 2500);
-      const out = add(modal(r, [[f, 1, 0.05], [f * 2.01, 0.12, 0.025], [f * 3.93, 0.06, 0.01]], 0.3, { noise: 0, att: 0.002 }), mallet, 0, 0.5);
-      return trimTail(norm(filt(out, 'lp', 5000, 0.7), -3));
+    reload: [2, r => { // magazine seated (clack + latch), charging handle back, slams forward
+      const out = buf(0.5), J = (v, p = 0.06) => v * (1 + (r() * 2 - 1) * p);
+      add(out, thud(r, 220, 140, 0.02, 900), 0, 0.8); add(out, snap(r, 1200, 0.003), 0, 1); add(out, steel(r, J(1300), 0.03), 0, 0.5);
+      add(out, snap(r, 2500, 0.0015), 0.035, 0.7); add(out, steel(r, J(3200), 0.01), 0.035, 0.3);
+      add(out, scrape(r, 0.07, 2000, 3500), 0.13, 0.4); add(out, steel(r, J(2600), 0.05), 0.14, 0.12); // spring
+      add(out, snap(r, 1500, 0.002), 0.22, 1.3); add(out, steel(r, J(1100), 0.04), 0.22, 0.6); add(out, thud(r, 150, 90, 0.03, 700), 0.22, 0.7);
+      return trimTail(norm(filt(withVerb(out, 0.3, 0.06), 'lp', 8000, 0.7), -2));
     }],
-    buy: [2, r => { // upgrade bought: soft felt thump + a rising, warm two-note marimba/string figure
-      const out = buf(1.1); add(out, thud(r, 150, 85, 0.035, 700), 0, 0.5);
-      [['G4', 0], ['D5', 0.075]].forEach(([n, at]) => {
-        const f = mtof(note(n));
-        add(out, marimba(r, f, 0.25, 0.9), at, 0.8);
-        add(out, pluck(r, f, 0.4, { bright: 0.4, decay: 0.8, vel: 0.7, pos: 0.25 }), at + 0.004, 0.45);
-      });
-      return trimTail(norm(filt(withVerb(out, 0.45, 0.12), 'lp', 4500, 0.7), -2));
+    click: [2, r => { // tactical switch tick: dry, no ring
+      const out = buf(0.06); add(out, filt(snap(r, 1800, 0.0012), 'lp', 6000, 0.7)); add(out, thud(r, 170, 120, 0.01, 900), 0, 0.25);
+      return trimTail(norm(out, -4));
     }],
-    wave: [1, r => { // wave cleared: harp-like arpeggio over a soft brass chord
-      const out = buf(2.4); ['C5', 'E5', 'G5', 'C6'].forEach((n, i) => add(out, pluck(r, mtof(note(n)), 1.5, { bright: 0.6, decay: 1.8, vel: 0.9 }), i * 0.07));
-      for (const n of ['C4', 'G4', 'E5']) add(out, horn(r, mtof(note(n)), 0.7, { vel: 0.5, a: 0.12 }), 0.05, 0.25);
-      return trimTail(norm(withVerb(out, 0.7, 0.3), -2));
+    coin: [4, r => { // pickup: a short, damped metal "chk" and a tiny settle, not a musical note
+      const out = buf(0.12), f = 2300 * (1 + (r() * 2 - 1) * 0.05);
+      add(out, snap(r, 2000, 0.0015), 0, 0.6); add(out, steel(r, f, 0.025), 0, 0.5); add(out, steel(r, f * 1.3, 0.012), 0.018, 0.2); add(out, snap(r, 2600, 0.001), 0.018, 0.3);
+      return trimTail(norm(filt(out, 'lp', 6000, 0.7), -4));
     }],
-    perk: [1, r => { const out = buf(3.8); ['G5', 'B5', 'D6', 'G6'].forEach((n, i) => add(out, glock(r, mtof(note(n)), 0.8), i * 0.06)); return trimTail(norm(withVerb(out, 0.8, 0.4), -3)); }],
+    buy: [2, r => { // upgrade bought: a heavy mechanical "ka-chunk", like a part locking into the gun
+      const out = buf(0.8);
+      add(out, snap(r, 1500, 0.002), 0, 0.8); add(out, steel(r, 1600, 0.02), 0, 0.4);
+      add(out, thud(r, 110, 60, 0.06, 700), 0.06, 1); add(out, snap(r, 900, 0.004), 0.06, 0.8); add(out, steel(r, 700, 0.06), 0.06, 0.5); add(out, steel(r, 1250, 0.04), 0.06, 0.3);
+      return trimTail(norm(withVerb(drive(out, 1.4), 0.35, 0.1), -2));
+    }],
+    wave: [1, r => { // wave cleared: one cinematic low hit - a big drum under a dark brass power chord
+      const out = buf(2.6);
+      add(out, tom(r, 62, { tau: 0.4, slap: 0.9, drive: 2 }), 0, 0.8); add(out, snap(r, 900, 0.004), 0, 0.5);
+      for (const n of ['D3', 'A3', 'D4']) add(out, horn(r, mtof(note(n)), 1.1, { vel: 0.8, a: 0.05, cut: 2600 }), 0.01, 0.5);
+      return trimTail(norm(withVerb(out, 0.9, 0.35), -2));
+    }],
+    perk: [1, r => { // perk taken: a rising charge that locks in with a heavy hit
+      const out = buf(1.6), T = 0.42, F = bq('bp', 300, 1.3), n = secs(T);
+      for (let i = 0; i < n; i++) { const u = i / n; if (!(i & 15)) F.set(300 + 2300 * u * u, 1.3); out[i] = F.run(r() * 2 - 1) * u * u * 3; } // riser
+      add(out, thud(r, 130, 70, 0.05, 900), T, 0.8); add(out, snap(r, 1500, 0.002), T, 0.7); add(out, steel(r, 900, 0.05), T, 0.35); add(out, steel(r, 1400, 0.04), T, 0.25);
+      add(out, filt(burstNoise(r, 6000, 0.7, 0.25, 1), 'hp', 4000), T, 0.15); // air after the hit
+      return trimTail(norm(withVerb(out, 0.7, 0.25), -2));
+    }],
     slow: [1, r => { // bullet time: suck-in swell, then a deep hit that sinks
       const out = buf(1.8), sw = reverseSwell(r, 0.5); add(out, sw, 0, 1.5 / (peak(sw) || 1));
       let ph = 0; const at = secs(sw.length / SR);
