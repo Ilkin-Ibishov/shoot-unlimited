@@ -13,6 +13,13 @@ function pose(o, F, t, act) {
   const s = F.scale || 1;
   if (F.rig === 'raptor') poseRaptor(o, 0, 0, s, 1, t, act, true);
   else if (F.rig === 'flyer') poseFlyer(o, 0, -70, s, 1, t, F.fly);
+  else if (F.anim === 'zombie') poseZombie(o, 0, 0, s, 1, t, true, act, 0);
+  else if (F.anim === 'sprinter') poseSprinter(o, 0, 0, s, 1, t, true, act, 0);
+  else if (F.anim === 'tank') poseTank(o, 0, 0, s, 1, t, true, act, 0);
+  else if (F.anim === 'spitter') poseSpitter(o, 0, 0, s, 1, t, true, act, 0);
+  else if (F.anim === 'bloater') poseBloater(o, 0, 0, s, 1, t, true, act, 0);
+  else if (F.anim === 'shield') poseShieldZombie(o, 0, 0, s, 1, t, true, act, 0);
+  else if (F.anim === 'boss') poseBossZombie(o, 0, 0, s, 1, t, true, act, 0, 0);
   else poseHuman(o, 0, 0, s, 1, t, F.legs || 'walk', F.arms || 'swing', act, 0, 0, F.face === 'zombie');
 }
 const cols = [{ t: 0.6 }, { t: 2.2, act: 1 }, { flash: 1 }, { corpse: 1 }, { old: 1 }], cw = 1400 / cols.length, rh = 900 / foes.length;

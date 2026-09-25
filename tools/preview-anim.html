@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Zombie Anim Live Preview</title>
+<style>
+  body { margin: 0; background: #1a1e28; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+  h2 { margin: 0 0 10px; color: #ffd21f; }
+  canvas { border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); background: #e9c48f; }
+  .controls { margin-top: 15px; display: flex; gap: 15px; }
+  button { padding: 8px 16px; border-radius: 8px; border: 0; background: #33405e; color: #fff; font-weight: bold; cursor: pointer; }
+  button:hover { background: #455680; }
+</style>
+</head>
+<body>
+<h2>🧟 Zombie Realistic Animation Live Preview</h2>
+<canvas id="c" width="800" height="450"></canvas>
+<div class="controls">
+  <button id="btnFoe">Foe: Sprinter (Runner)</button>
+  <button id="btnAttack">Trigger Attack</button>
+  <button id="btnToggleWalk">Toggle Walk</button>
+  <button id="btnLoopAttack">Auto-Attack Loop: OFF</button>
+  <button id="btnSlow">Speed: 1x</button>
+</div>
+
+<script src="../js/data.js"></script>
+<script src="../js/engine.js"></script>
+<script>
+const cvs = document.getElementById('c'), c = cvs.getContext('2d');
+const FOES = ['walker', 'runner', 'brute', 'ranged', 'exploder', 'shield', 'boss'];
+let foeIdx = 3; // start with ranged (Spitter)
+let foe = FOES[foeIdx];
+let t = 0, walking = true, act = 0, speed = 1, loopAttack = false, attackTimer = 0, paused = false;
+
+const btnFoe = document.getElementById('btnFoe');
+function updateFoeBtn() {
+  foe = FOES[foeIdx];
+  const names = {
+    walker: 'Zombie (Walker)',
+    runner: 'Sprinter (Runner)',
+    brute: 'Tank (Brute)',
+    ranged: 'Spitter (Ranged)',
+    exploder: 'Bloater (Exploder)',
+    shield: 'Riot Zombie (Shield)',
+    boss: 'Patient Zero (Boss)'
+  };
+  btnFoe.textContent = 'Foe: ' + names[foe];
+}
+updateFoeBtn();
+
+btnFoe.onclick = () => {
+  foeIdx = (foeIdx + 1) % FOES.length;
+  updateFoeBtn();
+};
+
+document.getElementById('btnAttack').onclick = () => { act = 1; };
+document.getElementById('btnToggleWalk').onclick = () => { walking = !walking; };
+const btnLoop = document.getElementById('btnLoopAttack');
+btnLoop.onclick = () => {
+  loopAttack = !loopAttack;
+  btnLoop.textContent = 'Auto-Attack Loop: ' + (loopAttack ? 'ON' : 'OFF');
+  btnLoop.style.background = loopAttack ? '#b53d35' : '#33405e';
+};
+const btnSlow = document.getElementById('btnSlow');
+btnSlow.onclick = () => {
+  speed = speed === 1 ? 0.3 : 1;
+  btnSlow.textContent = 'Speed: ' + speed + 'x';
+};
+
+window.setPoseState = (pAct, pT, pWalking) => {
+  paused = true;
+  if (pAct !== undefined) act = pAct;
+  if (pT !== undefined) t = pT;
+  if (pWalking !== undefined) walking = pWalking;
+};
+window.setFoe = (fName) => {
+  const idx = FOES.indexOf(fName);
+  if (idx >= 0) { foeIdx = idx; updateFoeBtn(); }
+};
+window.resume = () => { paused = false; };
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = paused ? 0 : 0.04 * speed;
+  t += dt;
+  const decayRate = foe === 'runner' ? 0.45 : foe === 'brute' ? 0.07 : foe === 'boss' ? 0.12 : foe === 'spitter' ? 0.28 : foe === 'shield' ? 0.25 : 0.27;
+  if (!paused && act > 0) act = Math.max(0, act - dt * decayRate);
+
+  if (loopAttack) {
+    attackTimer += dt;
+    const loopInterval = foe === 'runner' ? 1.7 : foe === 'brute' ? 4.2 : foe === 'boss' ? 3.8 : 2.5;
+    if (attackTimer > loopInterval) {
+      attackTimer = 0;
+      act = 1;
+    }
+  }
+
+  c.fillStyle = '#e9c48f';
+  c.fillRect(0, 0, 800, 450);
+
+  // ground
+  c.fillStyle = '#b89a74';
+  c.fillRect(0, 360, 800, 90);
+  c.fillStyle = '#a08463';
+  c.fillRect(0, 360, 800, 5);
+
+  const F = ERAS[0].foes[foe];
+  const o = [];
+  const baseScale = foe === 'boss' ? 1.25 : foe === 'brute' ? 1.7 : 2.1;
+  const s = baseScale * (foe === 'brute' ? 1.4 : foe === 'boss' ? 2.2 : (F.scale || 1.0));
+  if (foe === 'runner') {
+    poseSprinter(o, 420, 360, s, -1, t * 1.5, walking, act, 0);
+  } else if (foe === 'brute') {
+    poseTank(o, 420, 360, s, -1, t * 0.50, walking, act, 0);
+  } else if (foe === 'ranged') {
+    poseSpitter(o, 420, 360, s, -1, t * 0.90, walking, act, 0);
+  } else if (foe === 'exploder') {
+    poseBloater(o, 420, 360, s, -1, t * 0.85, walking, act, 0);
+  } else if (foe === 'shield') {
+    poseShieldZombie(o, 420, 360, s, -1, t * 0.85, walking, act, 0);
+  } else if (foe === 'boss') {
+    poseBossZombie(o, 420, 360, s, -1, t * 0.70, walking, act, 0, 0);
+  } else {
+    poseZombie(o, 420, 360, s, -1, t, walking, act, 0);
+  }
+
+  drawRig(c, 'human', o, F.look, s, -1, false, F.hat, -1, undefined, F, false);
+  if (F.held) drawHeld(c, F.held, o, s, -1, F.look, true);
+
+  // Status overlay
+  c.fillStyle = 'rgba(0,0,0,0.65)';
+  c.fillRect(16, 16, 280, 86);
+  c.fillStyle = '#ffd21f';
+  c.font = 'bold 14px monospace';
+  c.fillText(`FOE: ${F.name.toUpperCase()} (${foe.toUpperCase()})`, 26, 36);
+  c.fillStyle = '#fff';
+  c.fillText(`MODE: ${walking ? (foe === 'runner' ? 'FERAL SPRINT' : 'SHAMBLE / LIMP') : 'IDLE / COILED'}`, 26, 54);
+  c.fillStyle = act > 0 ? '#ff5a5a' : '#aaa';
+  c.fillText(`ATTACK: ${act > 0 ? (act * 100).toFixed(0) + '%' : 'READY'}`, 26, 72);
+  c.fillStyle = '#8bd3ff';
+  c.fillText(`SPEED: ${speed}x`, 26, 90);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

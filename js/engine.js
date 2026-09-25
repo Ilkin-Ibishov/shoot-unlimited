@@ -115,6 +115,604 @@ function poseHuman(o, x, y, s, f, t, legs, arms, act, aim, flinch = 0, hunch = f
   }
   if (act > 0 && arms !== 'aim') { const a = 0.9 + 1.9 * act * act; limb(o, 5, 6, nx, ny, a, a + 0.3, A, f); }
 }
+// realistic shambling zombie pose: hunched spine, asymmetrical dragging limp, drooping heavy head,
+// loose dangling back arm, reaching front arm with drooping wrist, and feral lunging grab/bite attack
+function poseZombie(o, x, y, s, f, t, walking, act = 0, flinch = 0) {
+  o.act = act;
+  const L = 21 * s, T = 30 * s, A = 15 * s, HD = 15 * s;
+
+  // Asymmetrical limping gait: step 1 (firm plant) vs step 2 (knee collapse & pelvis drop)
+  const limpImpact = walking ? Math.max(0, -Math.sin(t)) : 0;
+  const limpDrop = walking ? (limpImpact * limpImpact * 4.2 + Math.sin(t) * 1.2) * s : (Math.sin(t * 1.4) + 1) * 0.5 * s;
+
+  // Attack forward lunging trajectory
+  const attackLunge = act > 0 ? Math.sin(act * Math.PI) * 20 * s : 0;
+  const px = x + f * (attackLunge * 0.45 + (walking ? Math.sin(t) * 1.8 * s : 0));
+  const py = y - L * 1.95 + limpDrop;
+  P(o, 2, px, py);
+
+  // Hunched necrotic spine: lurches heavily forward on the collapsed limp step
+  const lean = 0.30 + (walking ? limpImpact * 0.14 + Math.sin(t + 0.3) * 0.05 : 0) - flinch * 0.6 + (act > 0 ? Math.sin(act * Math.PI) * 0.28 : 0);
+  const nx = px + f * Math.sin(lean) * T;
+  const ny = py - Math.cos(lean) * T;
+  P(o, 1, nx, ny);
+
+  // Inertial head drop & uncanny neurological twitches
+  const headLag = walking ? Math.cos(t - 0.4) * 0.15 : Math.sin(t * 1.3) * 0.04;
+  const headDip = walking ? Math.max(0, -Math.sin(t - 0.5)) * 2.6 * s : 0;
+  const spasm = (Math.sin(t * 1.7) > 0.82 ? Math.sin(t * 26) * 0.05 : 0) + Math.sin(t * 9.1) * 0.012;
+  const attackThrust = act > 0 ? Math.sin(act * Math.PI) * 5.5 * s : 0;
+  const headLean = lean + 0.34 + headLag + spasm + (act > 0 ? Math.sin(act * Math.PI) * 0.36 : 0);
+  const headDist = HD * 0.95 + attackThrust;
+  P(o, 0, nx + f * Math.sin(headLean) * headDist, ny - Math.cos(headLean) * headDist + headDip);
+
+  // Legs: Asymmetrical shambling - good plant leg vs dragging, scraping dead leg
+  if (walking) {
+    let a1 = Math.sin(t) * 0.45 + 0.04;
+    let k1 = a1 - Math.max(0, Math.sin(t + 1.0)) * 0.78;
+    let a2 = -Math.sin(t) * 0.40 - 0.08;
+    let k2 = a2 - Math.max(0, -Math.sin(t + 0.4)) * 0.26; // stiff dragged toe scraping ground
+
+    if (act > 0) {
+      const brace = Math.sin(act * Math.PI);
+      a1 = a1 * (1 - brace) + 0.48 * brace;
+      k1 = k1 * (1 - brace) + 0.22 * brace;
+      a2 = a2 * (1 - brace) - 0.36 * brace;
+      k2 = k2 * (1 - brace) - 0.48 * brace;
+    }
+    limb(o, 7, 8, px, py, a1, k1, L, f);
+    limb(o, 9, 10, px, py, a2, k2, L, f);
+  } else {
+    limb(o, 7, 8, px, py, -0.14 + Math.sin(t * 1.4) * 0.02, -0.08, L, f);
+    limb(o, 9, 10, px, py, 0.24 - Math.sin(t * 1.4) * 0.02, 0.36, L, f);
+  }
+
+  // Arms: Back arm loose/slack dead weight; Front arm reaching forward with drooping wrist
+  let armBack1 = 0.12 + (walking ? -Math.sin(t) * 0.26 : Math.sin(t * 1.2) * 0.04);
+  let armBack2 = armBack1 + 0.30 + (walking ? -Math.sin(t - 0.8) * 0.16 : 0);
+  let armFront1 = 0.68 + (walking ? Math.sin(t - 0.4) * 0.12 : Math.sin(t * 1.2) * 0.03);
+  let armFront2 = 0.26 + (walking ? Math.sin(t - 1.1) * 0.16 : Math.sin(t * 1.2) * 0.04);
+
+  // Feral 2-handed lunge attack: windup, tearing claw swipe & clutch
+  if (act > 0) {
+    const swipe = Math.sin(act * Math.PI);
+    const strike = Math.max(0, 0.5 - Math.abs(act - 0.35)) * 2;
+    armBack1 = armBack1 * (1 - swipe) + (0.92 + strike * 0.15) * swipe;
+    armBack2 = armBack2 * (1 - swipe) + (0.80 + strike * 0.35) * swipe;
+    armFront1 = armFront1 * (1 - swipe) + (1.28 + strike * 0.22) * swipe;
+    armFront2 = armFront2 * (1 - swipe) + (0.58 + strike * 0.42) * swipe;
+  }
+
+  limb(o, 3, 4, nx, ny, armBack1, armBack2, A, f);
+  limb(o, 5, 6, nx, ny, armFront1, armFront2, A, f);
+}
+// rabid feral sprinter pose: aggressive low forward hunch, frantic high-knee sprint,
+// clawing grasping arms, head thrust far forward, and flying tackle/bite pounce
+function poseSprinter(o, x, y, s, f, t, walking, act = 0, flinch = 0) {
+  o.act = act;
+  const L = 21 * s, T = 30 * s, A = 15 * s, HD = 15 * s;
+
+  // Violent bounding vertical bounce during sprint
+  const bounce = walking ? Math.abs(Math.sin(t)) * 4.2 * s : (Math.sin(t * 1.8) + 1) * 0.6 * s;
+  const pounceLunge = act > 0 ? Math.sin(act * Math.PI) * 26 * s : 0;
+  const px = x + f * (pounceLunge * 0.55 + (walking ? Math.sin(t) * 2.2 * s : 0));
+  const py = y - L * 1.95 + bounce - (act > 0 ? Math.sin(act * Math.PI) * 3.5 * s : 0);
+  P(o, 2, px, py);
+
+  // Deep predatory forward lean - hunting beast posture
+  const baseLean = walking ? 0.44 + Math.sin(t * 2) * 0.06 : 0.22;
+  const lean = baseLean - flinch * 0.6 + (act > 0 ? Math.sin(act * Math.PI) * 0.32 : 0);
+  const nx = px + f * Math.sin(lean) * T;
+  const ny = py - Math.cos(lean) * T;
+  P(o, 1, nx, ny);
+
+  // Head thrusts far ahead of torso, snarling forward with frantic jitter
+  const jitter = (Math.sin(t * 17) * 0.02 + Math.sin(t * 29) * 0.015) * (walking ? 1 : 0.3);
+  const headLean = lean + 0.36 + jitter + (act > 0 ? Math.sin(act * Math.PI) * 0.25 : 0);
+  const headStretch = HD * 0.95 + (act > 0 ? Math.sin(act * Math.PI) * 6 * s : 0);
+  P(o, 0, nx + f * Math.sin(headLean) * headStretch, ny - Math.cos(headLean) * headStretch);
+
+  // Legs: frantic high-speed sprint bounding
+  if (walking) {
+    const sw = Math.sin(t);
+    let a1 = sw * 0.72 + 0.12;
+    let k1 = a1 - Math.max(0, Math.sin(t + 1.4)) * 1.35;
+    let a2 = -sw * 0.72 + 0.12;
+    let k2 = a2 - Math.max(0, -Math.sin(t + 1.4)) * 1.35;
+
+    if (act > 0) {
+      const pounce = Math.sin(act * Math.PI);
+      a1 = a1 * (1 - pounce) + 0.65 * pounce;
+      k1 = k1 * (1 - pounce) + 0.28 * pounce;
+      a2 = a2 * (1 - pounce) - 0.52 * pounce;
+      k2 = k2 * (1 - pounce) - 0.45 * pounce;
+    }
+    limb(o, 7, 8, px, py, a1, k1, L, f);
+    limb(o, 9, 10, px, py, a2, k2, L, f);
+  } else {
+    // Restless twitching idle, coiled like a spring
+    limb(o, 7, 8, px, py, -0.22 + Math.sin(t * 2) * 0.03, -0.15, L, f);
+    limb(o, 9, 10, px, py, 0.28 - Math.sin(t * 2) * 0.03, 0.42, L, f);
+  }
+
+  // Arms: Pumping aggressively forward with greedy grasping claws
+  let armBack1 = -Math.sin(t) * 0.75 + 0.45;
+  let armBack2 = armBack1 + 0.65 - Math.sin(t - 0.5) * 0.35;
+  let armFront1 = Math.sin(t) * 0.75 + 0.55;
+  let armFront2 = armFront1 + 0.65 + Math.sin(t - 0.5) * 0.35;
+
+  if (!walking) {
+    armBack1 = 0.35 + Math.sin(t * 2) * 0.05;
+    armBack2 = 0.75 + Math.sin(t * 2 + 0.5) * 0.08;
+    armFront1 = 0.65 + Math.sin(t * 2) * 0.06;
+    armFront2 = 0.95 + Math.sin(t * 2 + 0.5) * 0.08;
+  }
+
+  // Tackle / Pounce Attack: Both arms reach forward into a rabid double-claw grapple
+  if (act > 0) {
+    const swipe = Math.sin(act * Math.PI);
+    armBack1 = armBack1 * (1 - swipe) + 1.25 * swipe;
+    armBack2 = armBack2 * (1 - swipe) + 0.75 * swipe;
+    armFront1 = armFront1 * (1 - swipe) + 1.45 * swipe;
+    armFront2 = armFront2 * (1 - swipe) + 0.85 * swipe;
+  }
+
+  limb(o, 3, 4, nx, ny, armBack1, armBack2, A, f);
+  limb(o, 5, 6, nx, ny, armFront1, armFront2, A, f);
+}
+// hulking mutated tank brute pose: massive hunched ape-like stance, heavy stomping sway,
+// low swinging sledgehammer arms, sunken head, and devastating haymaker punch
+function poseTank(o, x, y, s, f, t, walking, act = 0, flinch = 0) {
+  o.act = act;
+  const L = 21 * s, T = 30 * s, A = 16 * s, HD = 14 * s;
+
+  // Heavy stomping gait: large vertical weight drop on foot plants
+  const stepSway = walking ? Math.sin(t) : 0;
+  const stompDrop = walking ? Math.abs(Math.sin(t)) * 3.8 * s : (Math.sin(t * 1.2) + 1) * 0.7 * s;
+
+  // Continuous attack phase: u goes 0 -> 1 smoothly as act decays from 1 -> 0
+  const u = act > 0 ? (1 - act) : 0;
+
+  // Devastating Two-Handed Overhead Ground Pound / Sledgehammer Slam:
+  // Phase 1 (0 <= u < 0.38): Terrifying Windup - Rears back, stands tall, raises both fists high overhead
+  // Phase 2 (0.38 <= u < 0.68): Explosive Downward Smash - Lunges forward, drives both fists down into the ground
+  // Phase 3 (0.68 <= u <= 1.0): Heavy Recovery - Impact shudder, then heaves back up into stance
+  let attackLunge = 0;
+  let attackDrop = 0;
+  let attackLean = 0;
+  let attackHead = 0;
+
+  // Base walking / idle arms:
+  let armBack1 = 0.22 - stepSway * 0.5;
+  let armBack2 = armBack1 + 0.35 - Math.sin(t - 0.6) * 0.25;
+  let armFront1 = 0.22 + stepSway * 0.5;
+  let armFront2 = armFront1 + 0.35 + Math.sin(t - 0.6) * 0.25;
+
+  if (!walking) {
+    const breathe = Math.sin(t * 1.5) * 0.05;
+    armBack1 = 0.25 + breathe; armBack2 = 0.55 + breathe;
+    armFront1 = 0.35 - breathe; armFront2 = 0.65 - breathe;
+  }
+
+  // Attack stance legs override
+  let aLeg1 = 0, aLeg2 = 0, kLeg1 = 0, kLeg2 = 0, legBlend = 0;
+
+  if (u > 0) {
+    if (u < 0.42) {
+      // Phase 1: Heavy Windup - rears backward, chest arches back, raises both fists high overhead
+      const p = Math.sin((u / 0.42) * Math.PI * 0.5);
+      attackLunge = -12 * p * s;
+      attackDrop = -5 * p * s; // stands tall
+      attackLean = -0.52 * p;  // arches back: net lean goes from +0.34 to -0.18
+      attackHead = -0.48 * p;  // head tilts back, roaring
+
+      // Arms raise up and cock back behind head
+      armBack1 = armBack1 * (1 - p) + 2.70 * p;
+      armBack2 = armBack2 * (1 - p) + 3.70 * p;
+      armFront1 = armFront1 * (1 - p) + 2.90 * p;
+      armFront2 = armFront2 * (1 - p) + 3.85 * p;
+
+      // Legs brace backwards
+      legBlend = p;
+      aLeg1 = -0.10; kLeg1 = -0.05;
+      aLeg2 = -0.35; kLeg2 = -0.25;
+    } else if (u < 0.70) {
+      // Phase 2: Devastating Accelerating Downward Smash (starts from zero velocity at apex, accelerates to maximum impact)
+      const p = (u - 0.42) / 0.28;
+      const q = 1 - Math.cos(p * Math.PI * 0.5); // Ease-in: gravity + muscle acceleration
+      attackLunge = (-12 + 38 * q) * s;
+      attackDrop = (-5 + 21 * q) * s; // deep squat into ground impact (+16s)
+      attackLean = -0.52 * (1 - q) + 0.36 * q; // crashes forward: net lean +0.70
+      attackHead = -0.48 * (1 - q) + 0.35 * q; // head snaps down into impact
+
+      // Arms whip over the top and crash down into the ground
+      armBack1 = 2.70 * (1 - q) + 0.12 * q;
+      armBack2 = 3.70 * (1 - q) + 0.25 * q;
+      armFront1 = 2.90 * (1 - q) + 0.20 * q;
+      armFront2 = 3.85 * (1 - q) + 0.35 * q;
+
+      // Legs squat deep into slam
+      legBlend = 1;
+      aLeg1 = -0.10 * (1 - q) + 0.70 * q; kLeg1 = -0.05 * (1 - q) + 0.65 * q;
+      aLeg2 = -0.35 * (1 - q) - 0.60 * q; kLeg2 = -0.25 * (1 - q) - 0.45 * q;
+    } else {
+      // Phase 3: Impact Shudder & Recovery
+      const p = (u - 0.70) / 0.30;
+      const q = p < 0.25 ? 0 : Math.sin(((p - 0.25) / 0.75) * Math.PI * 0.5);
+      const shudder = (p < 0.25) ? Math.sin(p * 50) * 1.5 * s : 0;
+
+      attackLunge = 26 * (1 - q) * s;
+      attackDrop = (16 * (1 - q) + shudder) * s;
+      attackLean = 0.36 * (1 - q);
+      attackHead = 0.35 * (1 - q);
+
+      armBack1 = 0.12 * (1 - q) + armBack1 * q;
+      armBack2 = 0.25 * (1 - q) + armBack2 * q;
+      armFront1 = 0.20 * (1 - q) + armFront1 * q;
+      armFront2 = 0.35 * (1 - q) + armFront2 * q;
+
+      legBlend = 1 - q;
+      aLeg1 = 0.70; kLeg1 = 0.65;
+      aLeg2 = -0.60; kLeg2 = -0.45;
+    }
+  }
+
+  const px = x + f * (attackLunge + (walking ? Math.sin(t) * 1.5 * s : 0));
+  const py = y - L * 1.90 + stompDrop + attackDrop;
+  P(o, 2, px, py);
+
+  // Hunched ape-like spine
+  const lean = 0.34 + (walking ? Math.abs(stepSway) * 0.08 : 0) - flinch * 0.4 + attackLean;
+  const nx = px + f * Math.sin(lean) * T;
+  const ny = py - Math.cos(lean) * T;
+  P(o, 1, nx, ny);
+
+  // Sunken heavy skull between massive hunched shoulders
+  const headLag = walking ? Math.cos(t) * 0.08 : 0;
+  const headLean = lean + 0.26 + headLag + attackHead;
+  P(o, 0, nx + f * Math.sin(headLean) * HD * 0.9, ny - Math.cos(headLean) * HD * 0.9);
+
+  // Legs: wide, bowed, stomping strides with heavy heel plants
+  if (walking) {
+    const sw = Math.sin(t);
+    let a1 = sw * 0.52;
+    let k1 = a1 - Math.max(0, Math.sin(t + 1.2)) * 0.85;
+    let a2 = -sw * 0.52;
+    let k2 = a2 - Math.max(0, -Math.sin(t + 1.2)) * 0.85;
+
+    if (legBlend > 0) {
+      a1 = a1 * (1 - legBlend) + aLeg1 * legBlend;
+      k1 = k1 * (1 - legBlend) + kLeg1 * legBlend;
+      a2 = a2 * (1 - legBlend) + aLeg2 * legBlend;
+      k2 = k2 * (1 - legBlend) + kLeg2 * legBlend;
+    }
+    limb(o, 7, 8, px, py, a1, k1, L, f);
+    limb(o, 9, 10, px, py, a2, k2, L, f);
+  } else {
+    let a1 = -0.24, k1 = 0.08, a2 = 0.32, k2 = 0.48;
+    if (legBlend > 0) {
+      a1 = a1 * (1 - legBlend) + aLeg1 * legBlend;
+      k1 = k1 * (1 - legBlend) + kLeg1 * legBlend;
+      a2 = a2 * (1 - legBlend) + aLeg2 * legBlend;
+      k2 = k2 * (1 - legBlend) + kLeg2 * legBlend;
+    }
+    limb(o, 7, 8, px, py, a1, k1, L, f);
+    limb(o, 9, 10, px, py, a2, k2, L, f);
+  }
+
+  limb(o, 3, 4, nx, ny, armBack1, armBack2, A, f);
+  limb(o, 5, 6, nx, ny, armFront1, armFront2, A, f);
+}
+// realistic sickly spitter pose: slouched hunchback, convulsing acidic retch/vomit projectile spit
+function poseSpitter(o, x, y, s, f, t, walking, act = 0, flinch = 0) {
+  o.act = act;
+  const L = 21 * s, T = 29 * s, A = 15 * s, HD = 15 * s;
+  const u = act > 0 ? (1 - act) : 0;
+  let attackLunge = 0, attackDrop = 0, attackLean = 0, attackHead = 0;
+
+  const wheeze = Math.sin(t * 3.5) * 0.04;
+  const spasm = (Math.sin(t * 11) > 0.85 ? Math.sin(t * 33) * 0.03 : 0);
+
+  if (u > 0) {
+    if (u < 0.40) {
+      const p = Math.sin((u / 0.40) * Math.PI * 0.5);
+      attackLunge = -6 * p * s;
+      attackDrop = 5 * p * s;
+      attackLean = 0.22 * p;
+      attackHead = -0.35 * p;
+    } else if (u < 0.65) {
+      const p = (u - 0.40) / 0.25;
+      const q = Math.sin(p * Math.PI * 0.5);
+      attackLunge = (-6 + 18 * q) * s;
+      attackDrop = (5 - 3 * q) * s;
+      attackLean = 0.22 * (1 - q) + 0.38 * q;
+      attackHead = -0.35 * (1 - q) + 0.45 * q;
+    } else {
+      const p = (u - 0.65) / 0.35;
+      const q = Math.sin(p * Math.PI * 0.5);
+      const shudder = Math.sin(p * 20) * 1.0 * (1 - q) * s;
+      attackLunge = 12 * (1 - q) * s;
+      attackDrop = 2 * (1 - q) * s + shudder;
+      attackLean = 0.38 * (1 - q);
+      attackHead = 0.45 * (1 - q);
+    }
+  }
+
+  const px = x + f * (attackLunge + (walking ? Math.sin(t) * 1.2 * s : 0));
+  const py = y - L * 1.94 + attackDrop + (walking ? Math.abs(Math.cos(t)) * 2.2 * s : wheeze * 8 * s);
+  P(o, 2, px, py);
+
+  const lean = 0.32 + wheeze + spasm - flinch * 0.5 + attackLean;
+  const nx = px + f * Math.sin(lean) * T;
+  const ny = py - Math.cos(lean) * T;
+  P(o, 1, nx, ny);
+
+  const headLean = lean + 0.36 + spasm * 1.5 + attackHead;
+  P(o, 0, nx + f * Math.sin(headLean) * HD * 0.95, ny - Math.cos(headLean) * HD * 0.95);
+
+  if (walking) {
+    const sw = Math.sin(t);
+    const a1 = sw * 0.44;
+    const k1 = a1 - Math.max(0, Math.sin(t + 1.4)) * 0.85;
+    const a2 = -sw * 0.44;
+    const k2 = a2 - Math.max(0, -Math.sin(t + 1.4)) * 0.85;
+    limb(o, 7, 8, px, py, a1, k1, L, f);
+    limb(o, 9, 10, px, py, a2, k2, L, f);
+  } else {
+    limb(o, 7, 8, px, py, -0.15, -0.05, L, f);
+    limb(o, 9, 10, px, py, 0.22, 0.15, L, f);
+  }
+
+  let armBack1 = 0.18 + (walking ? Math.sin(t - 0.4) * 0.15 : wheeze * 2);
+  let armBack2 = armBack1 + 0.32;
+  let armFront1 = 0.75 + wheeze;
+  let armFront2 = armFront1 + 0.95;
+
+  if (u > 0) {
+    if (u < 0.40) {
+      const p = Math.sin((u / 0.40) * Math.PI * 0.5);
+      armFront1 = armFront1 * (1 - p) + 0.45 * p;
+      armFront2 = armFront2 * (1 - p) + 1.85 * p;
+      armBack1 = armBack1 * (1 - p) + (-0.35) * p;
+      armBack2 = armBack2 * (1 - p) + 0.15 * p;
+    } else if (u < 0.65) {
+      const p = (u - 0.40) / 0.25;
+      const q = Math.sin(p * Math.PI * 0.5);
+      armFront1 = 0.45 * (1 - q) + 1.35 * q;
+      armFront2 = 1.85 * (1 - q) + 1.15 * q;
+      armBack1 = (-0.35) * (1 - q) + (-0.65) * q;
+      armBack2 = 0.15 * (1 - q) + 0.45 * q;
+    } else {
+      const p = (u - 0.65) / 0.35;
+      const q = Math.sin(p * Math.PI * 0.5);
+      armFront1 = 1.35 * (1 - q) + (0.75 + wheeze) * q;
+      armFront2 = 1.15 * (1 - q) + (0.75 + 0.95) * q;
+      armBack1 = (-0.65) * (1 - q) + 0.18 * q;
+      armBack2 = 0.45 * (1 - q) + 0.50 * q;
+    }
+  }
+
+  limb(o, 3, 4, nx, ny, armBack1, armBack2, A, f);
+  limb(o, 5, 6, nx, ny, armFront1, armFront2, A, f);
+}
+// realistic bloated exploder pose: heavy grotesque waddling gait, throbbing toxic belly pressure, agonizing priming
+function poseBloater(o, x, y, s, f, t, walking, act = 0, flinch = 0) {
+  o.act = act;
+  const L = 20 * s, T = 28 * s, A = 15 * s, HD = 14 * s;
+
+  const waddle = walking ? Math.sin(t) * 0.14 : 0;
+  const drop = walking ? Math.abs(Math.sin(t)) * 2.8 * s : Math.sin(t * 2) * 0.8 * s;
+  const pulse = act > 0 ? Math.sin(t * 22) * 0.12 : 0;
+  const primeRaise = act > 0 ? Math.sin(act * Math.PI) : 0;
+
+  const px = x + (walking ? Math.cos(t) * 1.5 * s : 0);
+  const py = y - L * 1.88 + drop - primeRaise * 4 * s;
+  P(o, 2, px, py);
+
+  const lean = 0.26 + waddle - flinch * 0.5 - primeRaise * 0.35;
+  const nx = px + f * Math.sin(lean) * T;
+  const ny = py - Math.cos(lean) * T;
+  P(o, 1, nx, ny);
+
+  const headLean = lean + 0.25 - primeRaise * 0.45 + (act > 0 ? Math.sin(t * 30) * 0.05 : 0);
+  P(o, 0, nx + f * Math.sin(headLean) * HD * 0.95, ny - Math.cos(headLean) * HD * 0.95);
+
+  if (walking) {
+    const sw = Math.sin(t);
+    const a1 = sw * 0.48 + 0.08;
+    const k1 = a1 - Math.max(0, Math.sin(t + 1.2)) * 0.75;
+    const a2 = -sw * 0.48 + 0.08;
+    const k2 = a2 - Math.max(0, -Math.sin(t + 1.2)) * 0.75;
+    limb(o, 7, 8, px, py, a1, k1, L, f);
+    limb(o, 9, 10, px, py, a2, k2, L, f);
+  } else {
+    limb(o, 7, 8, px, py, -0.22, 0.12, L, f);
+    limb(o, 9, 10, px, py, 0.28, 0.22, L, f);
+  }
+
+  let armBack1 = 0.35 - waddle * 1.5 + (primeRaise ? primeRaise * 1.8 : 0);
+  let armBack2 = armBack1 + 0.55 + pulse;
+  let armFront1 = 0.45 + waddle * 1.5 + (primeRaise ? primeRaise * 1.9 : 0);
+  let armFront2 = armFront1 + 0.65 + pulse;
+
+  limb(o, 3, 4, nx, ny, armBack1, armBack2, A, f);
+  limb(o, 5, 6, nx, ny, armFront1, armFront2, A, f);
+}
+// realistic riot zombie pose: braced defensive shield stance, tactical advance, and violent shield bash ram
+function poseShieldZombie(o, x, y, s, f, t, walking, act = 0, flinch = 0) {
+  o.act = act;
+  const L = 21 * s, T = 30 * s, A = 15 * s, HD = 14 * s;
+
+  const u = act > 0 ? (1 - act) : 0;
+  let bashLunge = 0, bashLean = 0;
+
+  if (u > 0) {
+    if (u < 0.35) {
+      const p = Math.sin((u / 0.35) * Math.PI * 0.5);
+      bashLunge = -6 * p * s;
+      bashLean = -0.15 * p;
+    } else if (u < 0.65) {
+      const p = (u - 0.35) / 0.30;
+      const q = Math.sin(p * Math.PI * 0.5);
+      bashLunge = (-6 + 24 * q) * s;
+      bashLean = -0.15 * (1 - q) + 0.32 * q;
+    } else {
+      const p = (u - 0.65) / 0.35;
+      const q = Math.sin(p * Math.PI * 0.5);
+      bashLunge = 18 * (1 - q) * s;
+      bashLean = 0.32 * (1 - q);
+    }
+  }
+
+  const px = x + f * (bashLunge + (walking ? Math.sin(t) * 1.0 * s : 0));
+  const py = y - L * 1.92 + (walking ? Math.abs(Math.cos(t)) * 2.0 * s : 0);
+  P(o, 2, px, py);
+
+  const lean = 0.24 - flinch * 0.25 + bashLean;
+  const nx = px + f * Math.sin(lean) * T;
+  const ny = py - Math.cos(lean) * T;
+  P(o, 1, nx, ny);
+
+  const headLean = lean + 0.16;
+  P(o, 0, nx + f * Math.sin(headLean) * HD * 0.9, ny - Math.cos(headLean) * HD * 0.9);
+
+  if (walking) {
+    const sw = Math.sin(t);
+    const a1 = sw * 0.45;
+    const k1 = a1 - Math.max(0, Math.sin(t + 1.3)) * 0.75;
+    const a2 = -sw * 0.45;
+    const k2 = a2 - Math.max(0, -Math.sin(t + 1.3)) * 0.75;
+    limb(o, 7, 8, px, py, a1, k1, L, f);
+    limb(o, 9, 10, px, py, a2, k2, L, f);
+  } else {
+    limb(o, 7, 8, px, py, -0.20, 0.05, L, f);
+    limb(o, 9, 10, px, py, 0.25, 0.20, L, f);
+  }
+
+  let armBack1 = 0.30 - (walking ? Math.sin(t) * 0.15 : 0);
+  let armBack2 = 0.95;
+  let armFront1 = 0.85;
+  let armFront2 = 1.65;
+
+  if (u > 0) {
+    if (u < 0.35) {
+      const p = Math.sin((u / 0.35) * Math.PI * 0.5);
+      armFront1 = 0.85 * (1 - p) + 0.55 * p;
+      armFront2 = 1.65 * (1 - p) + 1.85 * p;
+    } else if (u < 0.65) {
+      const p = (u - 0.35) / 0.30;
+      const q = Math.sin(p * Math.PI * 0.5);
+      armFront1 = 0.55 * (1 - q) + 1.55 * q;
+      armFront2 = 1.85 * (1 - q) + 1.55 * q;
+    } else {
+      const p = (u - 0.65) / 0.35;
+      const q = Math.sin(p * Math.PI * 0.5);
+      armFront1 = 1.55 * (1 - q) + 0.85 * q;
+      armFront2 = 1.55 * (1 - q) + 1.65 * q;
+    }
+  }
+
+  limb(o, 3, 4, nx, ny, armBack1, armBack2, A, f);
+  limb(o, 5, 6, nx, ny, armFront1, armFront2, A, f);
+}
+// realistic apex boss pose: Patient Zero (scale 2.2), terrifying freight-train charge, blood-curdling summon roar, sweeping claw cleave
+function poseBossZombie(o, x, y, s, f, t, walking, act = 0, flinch = 0, charge = 0) {
+  o.act = act;
+  const L = 22 * s, T = 31 * s, A = 17 * s, HD = 15 * s;
+
+  const isCharging = charge > 0;
+  const u = act > 0 ? (1 - act) : 0;
+  const stomp = walking ? Math.abs(Math.sin(t)) * 4.0 * s : Math.sin(t * 1.5) * 1.0 * s;
+
+  let attackLunge = 0, attackLean = 0, attackHead = 0;
+
+  if (isCharging) {
+    attackLean = 0.35;
+    attackHead = 0.25;
+  } else if (u > 0) {
+    if (u < 0.40) {
+      const p = Math.sin((u / 0.40) * Math.PI * 0.5);
+      attackLunge = -10 * p * s;
+      attackLean = -0.25 * p;
+      attackHead = -0.20 * p;
+    } else if (u < 0.68) {
+      const p = (u - 0.40) / 0.28;
+      const q = 1 - Math.cos(p * Math.PI * 0.5);
+      attackLunge = (-10 + 32 * q) * s;
+      attackLean = -0.25 * (1 - q) + 0.45 * q;
+      attackHead = -0.20 * (1 - q) + 0.35 * q;
+    } else {
+      const p = (u - 0.68) / 0.32;
+      const q = Math.sin(p * Math.PI * 0.5);
+      attackLunge = 22 * (1 - q) * s;
+      attackLean = 0.45 * (1 - q);
+      attackHead = 0.35 * (1 - q);
+    }
+  }
+
+  const px = x + f * (attackLunge + (walking ? Math.sin(t) * 1.8 * s : 0));
+  const py = y - L * 1.90 + stomp - (isCharging ? 4 * s : 0);
+  P(o, 2, px, py);
+
+  const baseLean = isCharging ? 0.58 : 0.32;
+  const lean = baseLean - flinch * 0.3 + attackLean;
+  const nx = px + f * Math.sin(lean) * T;
+  const ny = py - Math.cos(lean) * T;
+  P(o, 1, nx, ny);
+
+  const headLean = lean + (isCharging ? 0.20 : 0.30) + attackHead + (act > 0 ? Math.sin(t * 15) * 0.04 : 0);
+  P(o, 0, nx + f * Math.sin(headLean) * HD * 0.95, ny - Math.cos(headLean) * HD * 0.95);
+
+  if (walking || isCharging) {
+    const sw = Math.sin(t * (isCharging ? 2.2 : 1.0));
+    const amp = isCharging ? 0.75 : 0.54;
+    const a1 = sw * amp;
+    const k1 = a1 - Math.max(0, Math.sin((t * (isCharging ? 2.2 : 1.0)) + 1.2)) * (isCharging ? 1.2 : 0.85);
+    const a2 = -sw * amp;
+    const k2 = a2 - Math.max(0, -Math.sin((t * (isCharging ? 2.2 : 1.0)) + 1.2)) * (isCharging ? 1.2 : 0.85);
+    limb(o, 7, 8, px, py, a1, k1, L, f);
+    limb(o, 9, 10, px, py, a2, k2, L, f);
+  } else {
+    limb(o, 7, 8, px, py, -0.22, 0.08, L, f);
+    limb(o, 9, 10, px, py, 0.28, 0.35, L, f);
+  }
+
+  let armBack1 = 0.35, armBack2 = 0.65;
+  let armFront1 = 0.85, armFront2 = 1.45;
+
+  if (isCharging) {
+    const sw = Math.sin(t * 2.2);
+    armBack1 = 0.75 - sw * 0.5;
+    armBack2 = armBack1 + 0.8;
+    armFront1 = 0.75 + sw * 0.5;
+    armFront2 = armFront1 + 0.8;
+  } else if (u > 0) {
+    if (u < 0.40) {
+      const p = Math.sin((u / 0.40) * Math.PI * 0.5);
+      armFront1 = armFront1 * (1 - p) + (-0.55) * p;
+      armFront2 = armFront2 * (1 - p) + 1.65 * p;
+      armBack1 = armBack1 * (1 - p) + 0.85 * p;
+      armBack2 = armBack2 * (1 - p) + 0.45 * p;
+    } else if (u < 0.68) {
+      const p = (u - 0.40) / 0.28;
+      const q = 1 - Math.cos(p * Math.PI * 0.5);
+      armFront1 = (-0.55) * (1 - q) + 1.65 * q;
+      armFront2 = 1.65 * (1 - q) + 1.35 * q;
+      armBack1 = 0.85 * (1 - q) + (-0.35) * q;
+      armBack2 = 0.45 * (1 - q) + 0.25 * q;
+    } else {
+      const p = (u - 0.68) / 0.32;
+      const q = Math.sin(p * Math.PI * 0.5);
+      armFront1 = 1.65 * (1 - q) + 0.85 * q;
+      armFront2 = 1.35 * (1 - q) + 1.45 * q;
+      armBack1 = (-0.35) * (1 - q) + 0.35 * q;
+      armBack2 = 0.25 * (1 - q) + 0.65 * q;
+    }
+  }
+
+  limb(o, 3, 4, nx, ny, armBack1, armBack2, A, f);
+  limb(o, 5, 6, nx, ny, armFront1, armFront2, A, f);
+}
 function poseRaptor(o, x, y, s, f, t, act, moving) {
   const L = 19 * s, sw = moving ? Math.sin(t) : 0;
   const hx = x, hy = y - L * 1.85 - (moving ? Math.abs(Math.cos(t)) * 2 * s : 0);
@@ -884,7 +1482,7 @@ function drawHuman(c, p, look, s, f, flash, hat, cut, headAng, opt, lod) {
   { const tA = Math.atan2(uy, ux) + Math.PI / 2; let rel = Math.atan2(h[1] - Nk[1], h[0] - Nk[0]) + Math.PI / 2 - tA; rel = Math.atan2(Math.sin(rel), Math.cos(rel));
     const ang = headAng ?? tA + rel * (zom ? 0.3 : 1), S = s * (zom ? 0.98 : 0.95);
     c.save(); c.translate(h[0], h[1]); c.rotate(ang); c.scale(f * S, S); c.translate(0, hero ? 3.4 : 1);
-    humanHead(c, look, hat, face, flash, rich, LW / S, cut === 0); c.restore(); }
+    humanHead(c, look, hat, face, flash, rich, LW / S, cut === 0, p.act || 0); c.restore(); }
   arm(false);
 }
 let HP = null; // head paths, built on first use (Path2D does not exist in the Node sim)
@@ -906,7 +1504,7 @@ const headPaths = () => HP || (HP = Object.fromEntries(Object.entries({
   robot: 'M-8.6 -5 C-8.6 -10.4 -3 -11.4 1 -11.4 L5 -11.4 C8.8 -11.4 9.6 -8.4 9.6 -5 L9.6 6 C9.6 9 7.6 9.6 5 9.6 L-3.4 9.6 C-7 9.6 -8.6 8 -8.6 3.6Z',
   cape: 'M-9.4 -7 C-12 0 -11.5 9 -10 15 L-2.4 13.4 L-4.4 3 Z',
 }).map(([k, d]) => [k, new Path2D(d)])));
-function humanHead(c, look, hat, face, flash, rich, lw, cut) {
+function humanHead(c, look, hat, face, flash, rich, lw, cut, act = 0) {
   const Hd = headPaths(), K = look.k, zom = face === 'zombie', hero = hat === 'hero', fl = x => flash ? '#fff' : x, t = performance.now() / 1000;
   const hair = '#2e2219', ink = INKD;
   const P = (path, col) => { c.fillStyle = fl(col); path ? c.fill(path) : c.fill(); c.strokeStyle = ink; c.lineWidth = lw; path ? c.stroke(path) : c.stroke(); };
@@ -928,17 +1526,19 @@ function humanHead(c, look, hat, face, flash, rich, lw, cut) {
     return;
   }
   if (zom) { // bald, gaunt skull, hanging jaw, glowing eyes
-    c.save(); c.translate(-3, 3.6); c.rotate(0.16); c.translate(3, -3.6); P(Hd.zjaw, shade(K, 0.86));
+    const bite = act > 0 ? Math.sin(act * Math.PI) : 0;
+    const jAng = 0.14 + (Math.sin(t * 3.2) > 0.3 ? 0.06 : 0) + (Math.sin(t * 1.7) > 0.82 ? Math.sin(t * 26) * 0.04 : 0) + bite * 0.34;
+    c.save(); c.translate(-3, 3.6); c.rotate(jAng); c.translate(3, -3.6); P(Hd.zjaw, shade(K, 0.86));
     if (!flash) { c.fillStyle = '#e9e0bb'; c.beginPath(); for (const x of [4.4, 6, 7.6]) { c.moveTo(x, 3.9); c.lineTo(x + 0.7, 2.7); c.lineTo(x + 1.3, 3.9); } c.fill(); }
     c.restore();
-    if (!flash) { c.fillStyle = '#2a0c10'; c.beginPath(); c.moveTo(-2, 3.8); c.lineTo(9.8, 3.2); c.lineTo(9.8, 5.8); c.lineTo(-1.4, 6); c.fill(); }
+    if (!flash) { c.fillStyle = '#22080a'; c.beginPath(); c.moveTo(-2, 3.8); c.lineTo(9.8, 3.2); c.lineTo(9.8, 5.8 + bite * 3.6); c.lineTo(-1.4, 6 + bite * 2.8); c.fill(); }
     c.fillStyle = fl(K); c.fill(Hd.zup);
     if (!flash) {
       c.fillStyle = shade(K, 0.68); c.fill(Hd.zsh);
       c.fillStyle = '#e9e0bb'; c.beginPath(); for (let x = 3.6; x < 9; x += 1.35) { const y = 3.2 + (9.4 - x) * 0.143; c.moveTo(x, y); c.lineTo(x + 0.6, y + 1.3 + (x % 2) * 0.3); c.lineTo(x + 1.1, y); } c.fill();
       c.fillStyle = 'rgba(40,25,10,.6)'; c.beginPath(); c.ellipse(5.9, -1.8, 3.2, 2.3, -0.1, 0, TAU); c.fill();
-      c.fillStyle = 'rgba(255,225,74,.28)'; c.beginPath(); c.ellipse(6.4, -1.7, 3.4, 2.5, -0.1, 0, TAU); c.fill(); // glow halo (a sprite + 'lighter' cost 4x the whole zombie)
-      c.fillStyle = '#fff45c'; c.beginPath(); c.ellipse(6.4, -1.7, 1.9, 1.1, -0.1, 0, TAU); c.fill();
+      c.fillStyle = 'rgba(255,225,74,.28)'; c.beginPath(); c.ellipse(6.4, -1.7, 3.4 + bite * 0.8, 2.5 + bite * 0.6, -0.1, 0, TAU); c.fill(); // glow halo (a sprite + 'lighter' cost 4x the whole zombie)
+      c.fillStyle = '#fff45c'; c.beginPath(); c.ellipse(6.4, -1.7, 1.9 + bite * 0.5, 1.1 + bite * 0.4, -0.1, 0, TAU); c.fill();
       if (rich) {
         c.fillStyle = 'rgba(255,255,225,.28)'; c.beginPath(); c.moveTo(-5.4, -8.6); c.quadraticCurveTo(-1, -12.2, 5, -10.8); c.quadraticCurveTo(0, -10.6, -4.2, -7.4); c.fill();
         c.fillStyle = 'rgba(70,50,10,.32)'; c.beginPath(); c.moveTo(2, 1.4); c.quadraticCurveTo(5.4, 0.2, 8.8, 1.4); c.quadraticCurveTo(7.6, 3.8, 4, 4.2); c.quadraticCurveTo(2.4, 3.4, 2, 1.4); c.fill();

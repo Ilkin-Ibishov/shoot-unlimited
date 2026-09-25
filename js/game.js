@@ -122,7 +122,13 @@ function makeEnemy(type, x, idle) {
 }
 function poseEnemy(e) {
   if (e.rig === 'raptor') poseRaptor(e.pts, e.x, e.y, e.s, e.f, e.phase, e.act, e.walking);
-  else if (e.rig === 'flyer') poseFlyer(e.pts, e.x, e.y, e.s, e.f, G.time + e.phase, e.F.fly);
+  else if (e.F.anim === 'zombie') poseZombie(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time + e.phase, e.walking, e.act, e.flinch);
+  else if (e.F.anim === 'sprinter') poseSprinter(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time * 2 + e.phase, e.walking, e.act, e.flinch);
+  else if (e.F.anim === 'tank') poseTank(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time + e.phase, e.walking, e.act, e.flinch);
+  else if (e.F.anim === 'spitter') poseSpitter(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time + e.phase, e.walking, e.act, e.flinch);
+  else if (e.F.anim === 'bloater') poseBloater(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time + e.phase, e.walking, e.act, e.flinch);
+  else if (e.F.anim === 'shield') poseShieldZombie(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time + e.phase, e.walking, e.act, e.flinch);
+  else if (e.F.anim === 'boss') poseBossZombie(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time + e.phase, e.walking, e.act, e.flinch, e.charge || 0);
   else {
     const arms = e.F.arms || 'swing', n = e.pts[1];
     const aim = n ? Math.atan2(player.y - 60 - n[1], player.x - n[0]) : Math.PI;
@@ -451,7 +457,7 @@ function bossAI(e, dt) {
 }
 function shootAt(e, k) {
   const kind = e.F.proj || era.foes.ranged.proj || 'rock', K = PROJ[kind];
-  const h = e.rig === 'human' ? e.pts[6] : e.pts[0];
+  const h = e.F.anim === 'spitter' ? e.pts[0] : (e.rig === 'human' ? e.pts[6] : e.pts[0]);
   const dx = player.x + rand(-10, 10) - h[0], dy = player.y - rand(40, 85) - h[1];
   let vx, vy;
   if (K.g) { const t = Math.max(0.35, Math.abs(dx) / K.speed); vx = dx / t; vy = dy / t - 0.5 * K.g * t; }
@@ -554,7 +560,7 @@ function updateEnemies(dt) {
   for (const e of enemies) {
     if (e.dead) continue;
     if (e.idle) { poseEnemy(e); continue; }
-    e.flash -= dt; e.flinch *= Math.exp(-9 * dt); e.act = Math.max(0, e.act - dt * 2.8); e.slow -= dt; e.charge -= dt;
+    e.flash -= dt; e.flinch *= Math.exp(-9 * dt); e.act = Math.max(0, e.act - dt * (e.F.anim === 'zombie' ? 0.9 : e.F.anim === 'sprinter' ? 1.5 : e.F.anim === 'tank' ? 0.32 : e.F.anim === 'spitter' ? 1.2 : e.F.anim === 'shield' ? 1.0 : e.F.anim === 'boss' ? 0.6 : 2.8)); e.slow -= dt; e.charge -= dt;
     if (e.accT > 0) { e.accT -= dt; if (e.accT <= 0 && e.acc > 0) { dmgText(e, e.acc, false, false); e.acc = 0; } }
     if (e.burn > 0) {
       e.burn -= dt; e.burnT -= dt;
@@ -577,7 +583,7 @@ function updateEnemies(dt) {
         if (e.type === 'exploder') { selfDestruct(e); continue; }
         if (e.atk <= 0) {
           if (e.type === 'ranged') { e.atk = e.rate; shootAt(e, 0); }
-          else { e.atk = e.type === 'boss' ? BAL.bossGap : BAL.meleeGap; e.act = 1; hurtPlayer(e.dmg); }
+          else { e.atk = e.type === 'boss' ? BAL.bossGap : e.type === 'brute' ? 2.8 : BAL.meleeGap; e.act = 1; hurtPlayer(e.dmg); }
         }
       }
       if (e.x < p.x + 14) e.x = p.x + 14;
