@@ -102,7 +102,7 @@ const ERAS = [
     foes: {
       walker:   { name: 'Zombie',      deco: 'torn', face: 'zombie', arms: 'zombie', look: { k: '#8fd14f', s: '#f0f0f0', p: '#2e3445' } },
       runner:   { name: 'Sprinter',    deco: 'torn', face: 'zombie', legs: 'run',    look: { k: '#9ad65a', s: '#d9534f', p: '#394055' } },
-      flyer:    { name: 'Gargoyle',    rig: 'flyer',   look: { k: '#8e949c', s: '#767c85', a: '#5f646c' }, blood: '#666' },
+      flyer:    { name: 'Gargoyle',    rig: 'flyer', fly: 'gargoyle',   look: { k: '#8e949c', s: '#767c85', a: '#5f646c' }, blood: '#666' },
       ranged:   { name: 'Spitter',     deco: 'torn', face: 'zombie', arms: 'aim',    look: { k: '#b5de6a', s: '#6d8b3c', p: '#2e3445' }, proj: 'goo' },
       exploder: { name: 'Bloater',     deco: 'torn', face: 'zombie', arms: 'zombie', look: { k: '#c9e56e', s: '#e5dca0', p: '#3a3f55' }, scale: 1.15, blood: '#9acd32' },
       shield:   { name: 'Riot Zombie', deco: 'armor', face: 'zombie', arms: 'shield', look: { k: '#8fd14f', s: '#223a5e', p: '#1b2436', sh: '#5d6d80' }, hat: 'helmet', held: 'shield' },
@@ -114,7 +114,7 @@ const ERAS = [
     foes: {
       walker:   { name: 'Caveman',     deco: 'fur', arms: 'hold', look: { k: '#d9a066', s: '#8a5a2b', p: '#6b4423' }, hat: 'hair', held: 'club' },
       runner:   { name: 'Raptor',      rig: 'raptor', scale: 1.2, look: { k: '#6f9a3c', s: '#5d8a33', p: '#4a6e28' } },
-      flyer:    { name: 'Pterodactyl', rig: 'flyer', look: { k: '#a0674a', s: '#8e5a3f', a: '#7a4b33' } },
+      flyer:    { name: 'Pterodactyl', rig: 'flyer', fly: 'ptero', look: { k: '#a0674a', s: '#8e5a3f', a: '#7a4b33' } },
       ranged:   { name: 'Rock Thrower', deco: 'fur', arms: 'aim', look: { k: '#d9a066', s: '#7a4f2a', p: '#5a3a1d' }, hat: 'hair', proj: 'rock' },
       exploder: { name: 'Firestarter', deco: 'fur', legs: 'run', look: { k: '#d9a066', s: '#a33', p: '#5a3a1d' }, hat: 'hair', held: 'bomb' },
       shield:   { name: 'Stone Guard', deco: 'fur', arms: 'shield', look: { k: '#c98f5a', s: '#6b5a4a', p: '#4a3b2c', sh: '#8d8a84' }, hat: 'hair', held: 'shield' },
@@ -126,7 +126,7 @@ const ERAS = [
     foes: {
       walker:   { name: 'Footman',     deco: 'armor', arms: 'hold', look: { k: '#e0b48a', s: '#8a2f2f', p: '#3a3a48' }, hat: 'helmet', held: 'sword' },
       runner:   { name: 'Rogue',       deco: 'belt', legs: 'run', look: { k: '#e0b48a', s: '#2f4f3a', p: '#2a2a2a' }, hat: 'hood' },
-      flyer:    { name: 'Bat',         rig: 'flyer', look: { k: '#3b2f45', s: '#2e2438', a: '#221a2b' } },
+      flyer:    { name: 'Bat',         rig: 'flyer', fly: 'bat', look: { k: '#3b2f45', s: '#2e2438', a: '#221a2b' } },
       ranged:   { name: 'Archer',      deco: 'fur', arms: 'aim', look: { k: '#e0b48a', s: '#3f6b3a', p: '#4a3b2c' }, hat: 'hood', held: 'bow', proj: 'arrow' },
       exploder: { name: 'Powder Monk', deco: 'robe', legs: 'run', look: { k: '#e0b48a', s: '#6b4a2b', p: '#6b4a2b' }, hat: 'hood', held: 'bomb' },
       shield:   { name: 'Knight',      deco: 'armor', arms: 'shield', look: { k: '#b8c0c8', s: '#9aa3ad', p: '#6d7680', sh: '#b33a3a' }, hat: 'helmet', held: 'shield' },
@@ -138,7 +138,7 @@ const ERAS = [
     foes: {
       walker:   { name: 'Mummy',       deco: 'wrap', face: 'zombie', arms: 'zombie', look: { k: '#e2d6b5', s: '#d8cba6', p: '#cbbd96' }, hat: 'bandage', blood: '#c9b88a' },
       runner:   { name: 'Jackal',      rig: 'raptor', look: { k: '#3a3530', s: '#2f2a26', p: '#25211e' } },
-      flyer:    { name: 'Vulture',     rig: 'flyer', look: { k: '#e8d8c8', s: '#5a4638', a: '#4a382c' } },
+      flyer:    { name: 'Vulture',     rig: 'flyer', fly: 'vulture', look: { k: '#e8d8c8', s: '#5a4638', a: '#4a382c' } },
       ranged:   { name: 'Cultist',     deco: 'robe', arms: 'aim', look: { k: '#b07a4a', s: '#e9e0c9', p: '#e9e0c9' }, hat: 'hood', proj: 'orb' },
       exploder: { name: 'Scarab Carrier', deco: 'belt', legs: 'run', look: { k: '#b07a4a', s: '#2b6f6a', p: '#e9e0c9' }, held: 'bomb' },
       shield:   { name: 'Anubis Guard', deco: 'armor', arms: 'shield', look: { k: '#1f1f1f', s: '#c9a23a', p: '#1f1f1f', sh: '#c9a23a' }, hat: 'anubis', held: 'shield' },
@@ -150,7 +150,7 @@ const ERAS = [
     foes: {
       walker:   { name: 'Undead Cowboy', deco: 'vest', face: 'zombie', arms: 'zombie', look: { k: '#a7c48a', s: '#8a5a3a', p: '#3f4b6b' }, hat: 'cowboy' },
       runner:   { name: 'Bandit',      deco: 'vest', legs: 'run', look: { k: '#d9a577', s: '#6b2f2f', p: '#2f2f3a' }, hat: 'bandana' },
-      flyer:    { name: 'Buzzard',     rig: 'flyer', look: { k: '#d9c8b8', s: '#4a3a2e', a: '#3a2c22' } },
+      flyer:    { name: 'Buzzard',     rig: 'flyer', fly: 'vulture', look: { k: '#c9563f', s: '#4a3a2e', a: '#3a2c22' } },
       ranged:   { name: 'Gunslinger',  deco: 'vest', arms: 'aim', look: { k: '#d9a577', s: '#3a4a6b', p: '#2f2f3a' }, hat: 'cowboy', held: 'gun', proj: 'bullet' },
       exploder: { name: 'Dynamite Dan', deco: 'belt', legs: 'run', look: { k: '#d9a577', s: '#b33', p: '#3a2f2a' }, hat: 'cowboy', held: 'bomb' },
       shield:   { name: 'Barricader',  deco: 'vest', arms: 'shield', look: { k: '#d9a577', s: '#5a5a5a', p: '#2f2f3a', sh: '#8a5a2b' }, hat: 'cowboy', held: 'shield' },
@@ -162,7 +162,7 @@ const ERAS = [
     foes: {
       walker:   { name: 'Drowned Sailor', deco: 'torn', face: 'zombie', arms: 'zombie', look: { k: '#8fbfa8', s: '#3a5a8a', p: '#6b4a2b' }, hat: 'bandana' },
       runner:   { name: 'Cutthroat',   deco: 'sash', legs: 'run', arms: 'hold', look: { k: '#d9a577', s: '#b33', p: '#2a2a2a' }, hat: 'bandana', held: 'sword' },
-      flyer:    { name: 'Parrot',      rig: 'flyer', look: { k: '#2fbf4f', s: '#e63b2e', a: '#2f7fe6' } },
+      flyer:    { name: 'Parrot',      rig: 'flyer', fly: 'parrot', look: { k: '#2fbf4f', s: '#e63b2e', a: '#2f7fe6' } },
       ranged:   { name: 'Musketeer',   deco: 'coat', arms: 'aim', look: { k: '#d9a577', s: '#2f3f6b', p: '#e8e2d0' }, hat: 'tricorn', held: 'gun', proj: 'bullet' },
       exploder: { name: 'Powder Monkey', deco: 'sash', legs: 'run', look: { k: '#d9a577', s: '#6b4a2b', p: '#6b4a2b' }, held: 'bomb' },
       shield:   { name: 'Boarder',     deco: 'sash', arms: 'shield', look: { k: '#d9a577', s: '#5a3a2a', p: '#2a2a2a', sh: '#7a5230' }, hat: 'bandana', held: 'shield' },
@@ -174,7 +174,7 @@ const ERAS = [
     foes: {
       walker:   { name: 'Droid',       deco: 'robot', arms: 'zombie', look: { k: '#aab4c4', s: '#6b7a90', p: '#4a5566' }, hat: 'visor', blood: '#39e1ff' },
       runner:   { name: 'Cyber Hound', rig: 'raptor', look: { k: '#8a94a6', s: '#5a6478', p: '#3a4254' }, blood: '#39e1ff' },
-      flyer:    { name: 'Drone',       rig: 'flyer', look: { k: '#39e1ff', s: '#4a5566', a: '#2a3140' }, blood: '#39e1ff' },
+      flyer:    { name: 'Drone',       rig: 'flyer', fly: 'drone', look: { k: '#39e1ff', s: '#4a5566', a: '#2a3140' }, blood: '#39e1ff' },
       ranged:   { name: 'Laser Trooper', deco: 'robot', arms: 'aim', look: { k: '#dfe6ee', s: '#e0e6ee', p: '#3a4254' }, hat: 'visor', held: 'gun', proj: 'laser', blood: '#39e1ff' },
       exploder: { name: 'Kamikaze Bot', deco: 'robot', legs: 'run', look: { k: '#ff5a5a', s: '#4a5566', p: '#2a3140' }, hat: 'visor', held: 'bomb', blood: '#39e1ff' },
       shield:   { name: 'Aegis Unit',  deco: 'robot', arms: 'shield', look: { k: '#aab4c4', s: '#2a6bb3', p: '#1f2a44', sh: '#39e1ff' }, hat: 'visor', held: 'shield', blood: '#39e1ff' },

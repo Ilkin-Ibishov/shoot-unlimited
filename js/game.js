@@ -109,7 +109,7 @@ function makeEnemy(type, x, idle) {
 }
 function poseEnemy(e) {
   if (e.rig === 'raptor') poseRaptor(e.pts, e.x, e.y, e.s, e.f, e.phase, e.act, e.walking);
-  else if (e.rig === 'flyer') poseFlyer(e.pts, e.x, e.y, e.s, e.f, G.time + e.phase);
+  else if (e.rig === 'flyer') poseFlyer(e.pts, e.x, e.y, e.s, e.f, G.time + e.phase, e.F.fly);
   else {
     const arms = e.F.arms || 'swing', n = e.pts[1];
     const aim = n ? Math.atan2(player.y - 60 - n[1], player.x - n[0]) : Math.PI;

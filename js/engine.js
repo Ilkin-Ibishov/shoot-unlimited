@@ -124,12 +124,190 @@ function poseRaptor(o, x, y, s, f, t, act, moving) {
   limb(o, 6, 7, hx, hy, sw * 0.6 + 0.1, sw * 0.6 - 0.5 - Math.max(0, Math.sin(t + 1.6)) * 0.8, L, f);
   limb(o, 8, 9, hx, hy, -sw * 0.6 + 0.1, -sw * 0.6 - 0.5 - Math.max(0, -Math.sin(t + 1.6)) * 0.8, L, f);
 }
-function poseFlyer(o, x, y, s, f, t) {
-  const flap = Math.sin(t * 14);
-  P(o, 1, x, y); P(o, 0, x + f * 11 * s, y - 3 * s);
-  P(o, 2, x - f * 4 * s, y - 18 * s * flap - 2 * s);
-  P(o, 3, x + f * 3 * s, y - 16 * s * flap * 0.9 + 2 * s);
-  P(o, 4, x - f * 13 * s, y + 2 * s);
+// Flyers share one rig (0 head, 1 body, 2 back wing tip, 3 front wing tip, 4 tail) so hits and ragdolls work the
+// same; each era's kind has its own flight style and silhouette. lift raises the wings into a soaring V.
+const FLY = {
+  gargoyle: { rate: 11, amp: 18, span: 13, lift: 6,  chord: 10, wing: 'skin',    hx: 11, hy: -4, tx: -14, ty: 3 },
+  ptero:    { rate: 6,  amp: 18, span: 20, lift: 8,  chord: 12, wing: 'skin',    hx: 12, hy: -3, tx: -10, ty: 0 },
+  bat:      { rate: 21, amp: 16, span: 10, lift: 4,  chord: 8,  wing: 'skin',    hx: 9,  hy: -3, tx: -7,  ty: 1 },
+  vulture:  { rate: 4,  amp: 8,  span: 19, lift: 13, chord: 11, wing: 'feather', hx: 14, hy: -5, tx: -13, ty: 2 },
+  parrot:   { rate: 16, amp: 15, span: 11, lift: 4,  chord: 8,  wing: 'feather', hx: 10, hy: -4, tx: -12, ty: 3 },
+  drone:    { rate: 0,  amp: 0,  span: 0,  lift: 0,  chord: 0,  wing: 'rotor',   hx: 8,  hy: 4,  tx: -9,  ty: 0 },
+};
+function poseFlyer(o, x, y, s, f, t, kind) {
+  const K = FLY[kind] || FLY.gargoyle;
+  if (K.wing === 'rotor') { // hovers, no flapping; points 2/3 are the rotors
+    y += Math.sin(t * 3) * 1.5 * s;
+    P(o, 1, x, y); P(o, 0, x + f * K.hx * s, y + K.hy * s); P(o, 2, x - f * 10 * s, y - 8 * s); P(o, 3, x + f * 10 * s, y - 8 * s); P(o, 4, x + f * K.tx * s, y + K.ty * s);
+    return;
+  }
+  const flap = Math.sin(t * K.rate);
+  if (kind === 'bat') y += Math.sin(t * 7.3) * 2.5 * s; // fluttery
+  P(o, 1, x, y); P(o, 0, x + f * K.hx * s, y + K.hy * s);
+  P(o, 2, x - f * K.span * s, y - (K.amp * flap + K.lift + 2) * s);
+  P(o, 3, x - f * (K.span * 0.4 - 3) * s, y - (K.amp * 0.9 * flap + K.lift * 0.8 - 2) * s);
+  P(o, 4, x + f * K.tx * s, y + K.ty * s);
+}
+// frame helper: origin o, forward unit (ux, uy); draws with +x forward and +y down, mirrored for f < 0
+function flyFrame(c, o, ux, uy, f) { const vx = f * uy, vy = -f * ux; c.transform(ux, uy, -vx, -vy, o[0], o[1]); }
+function flyWing(c, T, kind, K, s, col, back) {
+  const Sh = [2 * s, -3 * s], Rt = [-K.chord * s, 0.5 * s], fill = col('a', back);
+  let nx = T[1] - Rt[1], ny = Rt[0] - T[0]; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl; // trailing-edge normal
+  if (nx * ((T[0] + Rt[0]) / 2 - Sh[0]) + ny * ((T[1] + Rt[1]) / 2 - Sh[1]) < 0) { nx = -nx; ny = -ny; } // point it away from the shoulder
+  const L = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+  const E = L(Sh, T, 0.45); E[0] -= nx * 2.5 * s; E[1] -= ny * 2.5 * s; // wrist: leading edge bows forward
+  c.beginPath(); c.moveTo(Sh[0], Sh[1]); c.quadraticCurveTo(E[0], E[1], T[0], T[1]);
+  const Q = [];
+  if (K.wing === 'skin') { // membrane between finger bones, scalloped inward
+    let prev = T;
+    const nS = kind === 'bat' ? 4 : 3;
+    for (let k = 1; k <= nS; k++) {
+      const q = L(T, Rt, k / nS), m = L(prev, q, 0.5), cp = L(m, Sh, 0.3);
+      c.quadraticCurveTo(cp[0], cp[1], q[0], q[1]); Q.push(q); prev = q;
+    }
+  } else { // feathers: deep primary "fingers" at the tip, soft scallops toward the body
+    for (let k = 0; k < 4; k++) {
+      const tip = L(T, Rt, 0.06 + k * 0.09), notch = L(T, Rt, 0.1 + k * 0.09);
+      c.lineTo(tip[0] + nx * (4 - k * 0.5) * s, tip[1] + ny * (4 - k * 0.5) * s); c.lineTo(notch[0] - nx * 0.4 * s, notch[1] - ny * 0.4 * s);
+    }
+    let prev = L(T, Rt, 0.37);
+    for (let k = 1; k <= 3; k++) {
+      const q = L(L(T, Rt, 0.37), Rt, k / 3), m = L(prev, q, 0.5);
+      c.quadraticCurveTo(m[0] + nx * 2.2 * s, m[1] + ny * 2.2 * s, q[0], q[1]); prev = q;
+    }
+  }
+  c.closePath(); c.strokeStyle = INK; c.lineWidth = back ? 2.2 : 2.6; c.stroke(); c.fillStyle = fill; c.fill();
+  if (K.wing === 'skin') { // finger bones from the wrist
+    c.strokeStyle = col('a', true) === '#fff' ? '#fff' : shade(fill, 0.62); c.lineWidth = 1.4 * s; c.beginPath();
+    for (const q of Q.slice(0, -1)) { c.moveTo(E[0], E[1]); c.lineTo(q[0], q[1]); }
+    c.stroke();
+    if (kind === 'gargoyle') { c.fillStyle = INK; c.beginPath(); c.moveTo(E[0], E[1]); c.lineTo(E[0] + 3 * s, E[1] - 3 * s); c.lineTo(E[0] + 1 * s, E[1]); c.fill(); } // wrist claw
+  } else { // covert feathers: a second tone near the shoulder (red on the parrot)
+    const a = L(Sh, T, 0.55), b = L(Sh, Rt, 0.65);
+    c.beginPath(); c.moveTo(Sh[0], Sh[1]); c.quadraticCurveTo(E[0], E[1], a[0], a[1]); c.quadraticCurveTo((a[0] + b[0]) / 2 + nx * s, (a[1] + b[1]) / 2 + ny * s, b[0], b[1]); c.closePath();
+    c.fillStyle = kind === 'parrot' ? col('s', back) : shade(fill, 1.22); c.fill();
+  }
+}
+function flyBody(c, kind, s, col, lit) {
+  const ell = (x, y, rx, ry, fill) => { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, TAU); c.strokeStyle = INK; c.lineWidth = 2.6; c.stroke(); c.fillStyle = fill; c.fill(); };
+  const shine = (x, y, rx, ry) => { if (!lit) return; c.save(); c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, TAU); c.clip(); c.fillStyle = RIM; c.fillRect(x - rx, y - ry, rx * 2, ry * 0.7); c.restore(); };
+  const talons = (x) => { c.strokeStyle = INK; c.lineWidth = 1.8 * s; c.beginPath(); c.moveTo(x, 4 * s); c.lineTo(x - 1.5 * s, 8 * s); c.moveTo(x + 3 * s, 4 * s); c.lineTo(x + 2 * s, 8 * s); c.stroke(); };
+  switch (kind) {
+    case 'gargoyle': { // stone body, spade-tipped tail
+      c.strokeStyle = INK; c.lineWidth = 5 * s; c.beginPath(); c.moveTo(-6 * s, 1 * s); c.quadraticCurveTo(-14 * s, -4 * s, -19 * s, 5 * s); c.stroke();
+      c.strokeStyle = col('s'); c.lineWidth = 2.6 * s; c.stroke();
+      c.fillStyle = col('s'); c.strokeStyle = INK; c.lineWidth = 2; c.beginPath(); c.moveTo(-17 * s, 3 * s); c.lineTo(-24 * s, 5 * s); c.lineTo(-19 * s, 9 * s); c.closePath(); c.stroke(); c.fill();
+      talons(-1 * s); ell(0, 0, 9 * s, 7 * s, col('s')); shine(0, 0, 9 * s, 7 * s);
+      c.strokeStyle = shade(col('s'), 0.7); c.lineWidth = 1.2; c.beginPath(); c.moveTo(-3 * s, -3 * s); c.lineTo(0, 0); c.lineTo(-1 * s, 3 * s); c.moveTo(3 * s, 2 * s); c.lineTo(5 * s, 4 * s); c.stroke();
+      break;
+    }
+    case 'ptero':
+      c.fillStyle = col('s'); c.strokeStyle = INK; c.lineWidth = 2; c.beginPath(); c.moveTo(-6 * s, -1 * s); c.lineTo(-12 * s, 0); c.lineTo(-6 * s, 2 * s); c.closePath(); c.stroke(); c.fill();
+      c.strokeStyle = INK; c.lineWidth = 1.8 * s; c.beginPath(); c.moveTo(-4 * s, 3 * s); c.lineTo(-10 * s, 5 * s); c.moveTo(-3 * s, 3.5 * s); c.lineTo(-9 * s, 7 * s); c.stroke(); // feet tucked back
+      ell(0, 0, 9 * s, 4 * s, col('s')); shine(0, 0, 9 * s, 4 * s); break;
+    case 'bat':
+      talons(-3 * s); ell(0, 0, 7 * s, 6 * s, col('s')); shine(0, 0, 7 * s, 6 * s);
+      c.strokeStyle = shade(col('s'), 1.35); c.lineWidth = 1.2; c.beginPath(); for (let k = 0; k < 3; k++) { c.moveTo((1 + k * 1.6) * s, 1 * s); c.lineTo((1.8 + k * 1.6) * s, 3 * s); } c.stroke(); // fur
+      break;
+    case 'vulture': case 'parrot': {
+      const parrot = kind === 'parrot';
+      if (parrot) for (const [k, dy, len] of [['a', 0, 26], ['s', 2.5, 23]]) { // long tail feathers
+        c.beginPath(); c.moveTo(-6 * s, (dy - 1) * s); c.lineTo(-len * s, (dy + 5) * s); c.lineTo(-6 * s, (dy + 2) * s); c.closePath(); c.strokeStyle = INK; c.lineWidth = 2; c.stroke(); c.fillStyle = col(k); c.fill();
+      } else { c.beginPath(); c.moveTo(-6 * s, -2 * s); c.lineTo(-17 * s, -2 * s); c.lineTo(-17 * s, 4 * s); c.lineTo(-6 * s, 4 * s); c.closePath(); c.strokeStyle = INK; c.lineWidth = 2; c.stroke(); c.fillStyle = col('s', true); c.fill(); }
+      talons(-1 * s);
+      const bc = parrot ? col('k') : col('s');
+      ell(0, 0, (parrot ? 8.5 : 10) * s, (parrot ? 6.5 : 7) * s, bc); shine(0, 0, (parrot ? 8.5 : 10) * s, 7 * s);
+      if (!parrot) { c.fillStyle = col('s') === '#fff' ? '#fff' : '#efe8dc'; c.strokeStyle = INK; c.lineWidth = 1.6; for (const [x, y] of [[5, -5], [7, -3.5], [3, -6]]) { c.beginPath(); c.arc(x * s, y * s, 2 * s, 0, TAU); c.stroke(); c.fill(); } } // neck ruff
+      else { c.fillStyle = shade(bc, 1.2); c.beginPath(); c.ellipse(3 * s, 2.5 * s, 4 * s, 3 * s, 0, 0, TAU); c.fill(); } // lighter belly
+      break;
+    }
+  }
+}
+function flyDrone(c, W2, W3, s, col, flash, lit) {
+  const dk = col('a'), bd = col('s');
+  c.strokeStyle = INK; c.lineCap = 'round';
+  for (const W of [W2, W3]) { c.lineWidth = 4.4 * s; c.beginPath(); c.moveTo(0, -2 * s); c.lineTo(W[0], W[1]); c.stroke(); c.strokeStyle = dk; c.lineWidth = 2.2 * s; c.stroke(); c.strokeStyle = INK; }
+  c.lineWidth = 2; c.beginPath(); c.moveTo(-6 * s, 4 * s); c.lineTo(-7 * s, 8 * s); c.moveTo(6 * s, 4 * s); c.lineTo(7 * s, 8 * s); c.moveTo(-10 * s, 8 * s); c.lineTo(10 * s, 8 * s); c.stroke(); // skids
+  c.beginPath(); c.roundRect ? c.roundRect(-10 * s, -5 * s, 20 * s, 10 * s, 3 * s) : c.rect(-10 * s, -5 * s, 20 * s, 10 * s);
+  c.lineWidth = 2.6; c.stroke(); c.fillStyle = bd; c.fill();
+  if (lit) { c.fillStyle = RIM; c.fillRect(-8 * s, -4.5 * s, 16 * s, 2.4 * s); }
+  c.fillStyle = dk; c.fillRect(-8 * s, 1 * s, 16 * s, 2 * s);
+  const t = performance.now() / 1000;
+  c.fillStyle = flash ? '#fff' : Math.sin(t * 6) > 0 ? '#ff4d4d' : '#5a1f24'; c.fillRect(-8 * s, -2.5 * s, 2.4 * s, 2.4 * s); // status LED
+  for (const W of [W2, W3]) { // spinning rotors: a blur disc plus two moving blade glints
+    c.fillStyle = 'rgba(230,240,255,.35)'; c.beginPath(); c.ellipse(W[0], W[1] - 1.5 * s, 9 * s, 1.8 * s, 0, 0, TAU); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 1.4; c.beginPath();
+    for (const ph of [0, Math.PI]) { const x = Math.cos(t * 40 + ph + W[0]) * 8.5 * s; c.moveTo(W[0] + x, W[1] - 2.5 * s); c.lineTo(W[0] + x * 0.6, W[1] - 1 * s); }
+    c.stroke();
+    obox(c, W[0] - 1.5 * s, W[1] - 2 * s, 3 * s, 3 * s, dk);
+  }
+}
+function flyHead(c, kind, look, s, flash, col) {
+  const ink = (w = 2.2) => { c.strokeStyle = INK; c.lineWidth = w; c.stroke(); };
+  const dot = (x, y, r, fill) => { c.fillStyle = flash ? '#fff' : fill; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); };
+  switch (kind) {
+    case 'bat':
+      for (const dx of [-3, 0.5]) { c.beginPath(); c.moveTo((dx - 1.5) * s, -3 * s); c.lineTo((dx - 3.5) * s, -13 * s); c.lineTo((dx + 2.5) * s, -3.5 * s); c.closePath(); ink(); c.fillStyle = col('k'); c.fill(); c.fillStyle = flash ? '#fff' : '#b0707a'; c.beginPath(); c.moveTo((dx - 0.5) * s, -4 * s); c.lineTo((dx - 2.6) * s, -10.5 * s); c.lineTo((dx + 1.2) * s, -4.2 * s); c.fill(); } // ears
+      c.beginPath(); c.arc(0, 0, 5.5 * s, 0, TAU); ink(); c.fillStyle = col('k'); c.fill();
+      dot(2.4 * s, -1.2 * s, 1.1 * s, '#ff4d4d');
+      c.fillStyle = flash ? '#fff' : '#f2efd2'; c.beginPath(); c.moveTo(2 * s, 3.5 * s); c.lineTo(2.8 * s, 6 * s); c.lineTo(3.6 * s, 3.3 * s); c.fill(); // fang
+      break;
+    case 'gargoyle':
+      c.fillStyle = flash ? '#fff' : '#d8d0c0'; // horns sweep back
+      for (const dy of [0, 2]) { c.beginPath(); c.moveTo(-1 * s, (-4 + dy) * s); c.quadraticCurveTo(-7 * s, (-5 + dy) * s, -10 * s, (-11 + dy) * s); c.quadraticCurveTo(-6 * s, (-7 + dy) * s, -3 * s, (-2 + dy) * s); c.closePath(); ink(1.8); c.fill(); }
+      c.beginPath(); c.rect(-5 * s, -5 * s, 10 * s, 9 * s); ink(); c.fillStyle = col('k'); c.fill();
+      c.beginPath(); c.rect(4 * s, -1 * s, 5 * s, 4.5 * s); ink(); c.fill(); // snout
+      c.fillStyle = flash ? '#fff' : shade(look.k, 0.6); c.fillRect(-1 * s, -3.4 * s, 6 * s, 1.4 * s); // brow
+      c.fillStyle = flash ? '#fff' : '#ffd34d'; c.fillRect(1.4 * s, -2 * s, 2.2 * s, 1.6 * s); // glowing eye
+      c.fillStyle = flash ? '#fff' : '#f2efd2'; c.fillRect(5 * s, 3.5 * s, 1.2 * s, 1.6 * s); c.fillRect(7.3 * s, 3.5 * s, 1.2 * s, 1.6 * s); // teeth
+      break;
+    case 'ptero':
+      c.beginPath(); c.moveTo(0.5 * s, -3.6 * s); c.lineTo(-14 * s, -12 * s); c.lineTo(-4.5 * s, -0.5 * s); c.closePath(); ink(); c.fillStyle = flash ? '#fff' : '#e07b39'; c.fill(); // crest, back and up off the skull
+      c.beginPath(); c.moveTo(3 * s, -2.5 * s); c.lineTo(18 * s, 0.5 * s); c.lineTo(3 * s, 2.5 * s); c.closePath(); ink(); c.fillStyle = flash ? '#fff' : shade(look.k, 1.18); c.fill(); // beak
+      c.beginPath(); c.ellipse(0, 0, 5.5 * s, 4 * s, 0, 0, TAU); ink(); c.fillStyle = col('k'); c.fill();
+      c.strokeStyle = INK; c.lineWidth = 1; c.beginPath(); c.moveTo(4 * s, 0.6 * s); c.lineTo(15 * s, 0.9 * s); c.stroke(); // bill line
+      dot(1.2 * s, -1.2 * s, 1 * s, '#15161c');
+      break;
+    case 'vulture': case 'parrot': {
+      const parrot = kind === 'parrot';
+      c.beginPath(); c.arc(0, 0, (parrot ? 5.5 : 4.2) * s, 0, TAU); ink(); c.fillStyle = col('k'); c.fill();
+      if (parrot) { c.fillStyle = flash ? '#fff' : '#f4f1e6'; c.beginPath(); c.ellipse(1.8 * s, 0.3 * s, 2.8 * s, 3.2 * s, 0, 0, TAU); c.fill(); }
+      const bx = parrot ? 3.5 : 2.8, len = parrot ? 6 : 5.5; // hooked beak
+      c.beginPath(); c.moveTo(bx * s, -2.8 * s); c.quadraticCurveTo((bx + len + 1.5) * s, -3 * s, (bx + len) * s, 3.2 * s); c.lineTo((bx + len - 1.5) * s, 1.4 * s); c.lineTo(bx * s, 1.8 * s); c.closePath();
+      ink(); c.fillStyle = flash ? '#fff' : parrot ? '#efe6c8' : '#d8cfa8'; c.fill();
+      if (parrot) { c.fillStyle = flash ? '#fff' : '#2a2a2a'; c.beginPath(); c.moveTo(bx * s, 1.8 * s); c.lineTo((bx + 3) * s, 1.6 * s); c.lineTo(bx * s, 3.6 * s); c.fill(); }
+      dot((parrot ? 1.6 : 1) * s, -1 * s, 0.95 * s, '#15161c');
+      break;
+    }
+    case 'drone': // camera module: the "head" that pops on a headshot
+      c.beginPath(); c.arc(0, 0, 3.8 * s, 0, TAU); ink(); c.fillStyle = flash ? '#fff' : '#1b2230'; c.fill();
+      dot(0.8 * s, 0, 2.2 * s, look.k); dot(1.6 * s, -0.8 * s, 0.7 * s, 'rgba(255,255,255,.85)');
+      break;
+  }
+}
+function drawFlyer(c, p, look, s, f, flash, cut, headAng, kind, lod) {
+  kind = FLY[kind] ? kind : 'gargoyle';
+  const K = FLY[kind], col = (k, back) => flash ? '#fff' : shade(look[k] || look.s, back ? 0.76 : 1), lit = !flash && !lod && !GFX_LOW;
+  const o = p[1]; let ux = o[0] - p[4][0], uy = o[1] - p[4][1]; const d = Math.hypot(ux, uy) || 1; ux /= d; uy /= d;
+  const vx = f * uy, vy = -f * ux, loc = q => { const dx = q[0] - o[0], dy = q[1] - o[1]; return [dx * ux + dy * uy, -(dx * vx + dy * vy)]; };
+  const W2 = loc(p[2]), W3 = loc(p[3]);
+  c.save(); flyFrame(c, o, ux, uy, f); c.lineCap = 'round'; c.lineJoin = 'round';
+  if (K.wing === 'rotor') flyDrone(c, W2, W3, s, col, flash, lit);
+  else {
+    flyWing(c, W2, kind, K, s, col, true);
+    if (cut !== 0 && (kind === 'ptero' || kind === 'vulture')) { // neck
+      const h = loc(p[0]); c.strokeStyle = INK; c.lineWidth = 5.5 * s; c.beginPath(); c.moveTo(4 * s, -2 * s); c.lineTo(h[0], h[1]); c.stroke();
+      c.strokeStyle = kind === 'vulture' ? col('k') : col('s'); c.lineWidth = 3 * s; c.stroke();
+    }
+    flyBody(c, kind, s, col, lit);
+    flyWing(c, W3, kind, K, s, col, false);
+  }
+  c.restore();
+  // head in its own frame (direction neck -> head, or the tumbling angle once it is shot off)
+  const h = p[0]; let hx, hy;
+  if (headAng != null) { hx = Math.sin(headAng); hy = -Math.cos(headAng); }
+  else { hx = h[0] - o[0]; hy = h[1] - o[1]; const l = Math.hypot(hx, hy) || 1; hx /= l; hy /= l; }
+  c.save(); flyFrame(c, h, hx, hy, f); c.lineCap = 'round'; c.lineJoin = 'round'; flyHead(c, kind, look, s, flash, col); c.restore();
 }
 
 // Cartoon rendering: ink outline per part, back limbs shaded darker, era-tinted lit edge (top-left).
@@ -147,12 +325,9 @@ function taper(c, A, B, r0, r1) {
 // cut: point index detached from the body (skip its bones); headAng overrides head rotation;
 // opt: { deco: outfit detail, face: 'zombie' | 'hero' | default }; lod: cheap mode for corpses (no lit edge)
 function drawRig(c, rig, p, look, s, f, flash, hat, cut = -1, headAng, opt = {}, lod = false) {
+  if (rig === 'flyer') return drawFlyer(c, p, look, s, f, flash, cut, headAng, opt.fly, lod);
   const R = RIGS[rig], col = (k, back) => flash ? '#fff' : shade(look[k] || look.s, back ? 0.76 : 1);
   c.lineCap = 'round'; c.lineJoin = 'round';
-  if (R.wings) R.wings.forEach((w, i) => {
-    c.beginPath(); c.moveTo(p[1][0], p[1][1]); c.lineTo(p[w][0], p[w][1]); c.lineTo(p[1][0] - f * 10 * s, p[1][1] + 3 * s); c.closePath();
-    c.strokeStyle = INK; c.lineWidth = 3; c.stroke(); c.fillStyle = col('a', i === 0); c.fill();
-  });
   R.bones.forEach((b, bi) => {
     if (b[0] === cut || b[1] === cut) return;
     const A = p[b[0]], B = p[b[1]], r0 = b[2] * s, r1 = (b[6] || b[2]) * s;
@@ -171,10 +346,6 @@ function drawRig(c, rig, p, look, s, f, flash, hat, cut = -1, headAng, opt = {},
       c.fillStyle = flash ? '#fff' : '#15171f'; c.fillRect(-4 * s + f * 2 * s, 1.2 * s, 10 * s, 1.3 * s); c.restore();
     }
   });
-  if (R.body) {
-    c.beginPath(); c.arc(p[1][0], p[1][1], R.body * s, 0, TAU);
-    c.strokeStyle = INK; c.lineWidth = 3; c.stroke(); c.fillStyle = col('s'); c.fill();
-  }
   const h = p[R.head], nb = p[R.neck];
   c.save(); c.translate(h[0], h[1]); c.rotate(headAng ?? Math.atan2(h[1] - nb[1], h[0] - nb[0]) + Math.PI / 2);
   drawHead(c, rig, R.headR * s, look, f, flash, hat, opt.face);
@@ -237,17 +408,10 @@ function outfit(c, N, Pl, rs, rh, look, s, f, deco) {
 function drawHead(c, rig, r, look, f, flash, hat, face) {
   const k = flash ? '#fff' : look.k, dark = '#15161c', fl = x => flash ? '#fff' : x;
   const lit = () => { if (flash) return; c.fillStyle = RIM; c.fillRect(-r, -r, 2 * r, r * 0.35); c.fillStyle = 'rgba(0,0,0,.14)'; c.fillRect(-r, r * 0.6, 2 * r, r * 0.4); };
-  if (rig !== 'human') {
-    if (rig === 'raptor') {
-      obox(c, -r * 0.75, -r * 1.7, r * 1.5, r * 2.4, k);
-      c.fillStyle = dark; c.fillRect(-f * r * 0.35 - r * 0.15, -r * 0.9, r * 0.3, r * 0.3);
-      c.fillRect(f * r * 0.15, -r * 1.7, r * 0.12, r * 1.3);
-    } else {
-      obox(c, -r, -r, 2 * r, 2 * r, k); lit();
-      c.fillStyle = INK; c.beginPath(); c.moveTo(-r * 0.55, -r - 1); c.lineTo(0, -r * 2.05); c.lineTo(r * 0.55, -r - 1); c.fill();
-      c.fillStyle = fl('#e8b33a'); c.beginPath(); c.moveTo(-r * 0.4, -r); c.lineTo(0, -r * 1.85); c.lineTo(r * 0.4, -r); c.fill();
-      c.fillStyle = dark; c.fillRect(-f * r * 0.3 - r * 0.15, -r * 0.3, r * 0.3, r * 0.3);
-    }
+  if (rig === 'raptor') {
+    obox(c, -r * 0.75, -r * 1.7, r * 1.5, r * 2.4, k);
+    c.fillStyle = dark; c.fillRect(-f * r * 0.35 - r * 0.15, -r * 0.9, r * 0.3, r * 0.3);
+    c.fillRect(f * r * 0.15, -r * 1.7, r * 0.12, r * 1.3);
     return;
   }
   obox(c, -r, -r, 2 * r, 2 * r, k); lit();
