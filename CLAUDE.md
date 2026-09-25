@@ -19,7 +19,9 @@ realistic look. **Done: the Jurassic dinos** (Raptor, Bonecrusher, T-Rex) in `js
 `dinoHead`; picked by `dino: 'raptor' | 'crusher' | 'rex'` on the foe in `js/data.js`. The user liked it and wants the
 same treatment for the other characters, one group at a time.
 
-**Still old style:**
+**Done: humans** (`drawHuman`, `humanHead`, `drawHeld` in `js/engine.js`; old path kept behind `opt.old`/`GFX_LOW`; perf vs old on real GPU NOT yet measured, CPU raster ~1.8x).
+
+**Still old style (item 1 below is now done, only its notes remain):**
 1. Humans: every walker/runner/ranged/exploder/shield/brute/boss in all eras, and the player. Drawing lives in
    `drawRig` (tapered bones via `taper`), `drawHead` (square head, `hat`s, `face`s), `outfit` (`deco`s); held items
    are `drawHeld` in `js/render.js`, the player is `drawPlayer` in `js/render.js`, the guns are `GUNS` / `drawGun`.

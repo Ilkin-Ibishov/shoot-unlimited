@@ -595,7 +595,7 @@ function drawPlayer(c) {
   if (f < 0) c.scale(1, -1); // keep the grip under the barrel when pointing left
   drawGun(c, wep.id, wep.color, wep.id === 'laser' ? (p.over ? '#ff5a5a' : '#39e1ff') : '#9ff3ff');
   c.restore();
-  obox(c, h[0] - 3.5, h[1] - 3.5, 7, 7, PLAYER_LOOK.k);
+  c.beginPath(); c.arc(h[0], h[1], 3.1, 0, TAU); c.fillStyle = PLAYER_LOOK.k; c.fill(); c.strokeStyle = shade(PLAYER_LOOK.k, 0.34); c.lineWidth = 1.6; c.stroke();
   const [mx, my] = muzzle();
   if (p.mflash > 0) {
     c.save(); c.translate(mx, my); c.rotate(a); c.fillStyle = '#fff1a8';
