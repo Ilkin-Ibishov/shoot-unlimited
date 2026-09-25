@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8"><title>Rig preview</title><body style="margin:0;background:#e9c48f">
+<canvas id="c" width="1400" height="900"></canvas>
+<script src="../js/data.js"></script><script src="../js/engine.js"></script>
+<script>
+// Big static renders of enemy rigs for judging character art (see CLAUDE.md: screenshot it with Playwright at 1400x900).
+//   tools/preview.html?era=1&foe=runner,brute,boss&z=2.2
+// Rows = foes of that era; columns = walk, attack, hit flash, corpse (lod + head shot off), old look (opt without `dino`).
+// Held items (club, shield, bomb) live in render.js and are not drawn here.
+const q = new URLSearchParams(location.search), E = ERAS[+(q.get('era') ?? 1)], Z = +(q.get('z') || 2.2);
+const foes = (q.get('foe') || 'runner,brute,boss').split(','), c = document.getElementById('c').getContext('2d');
+RIM = 'rgba(255,240,210,0.22)';
+function pose(o, F, t, act) {
+  const s = F.scale || 1;
+  if (F.rig === 'raptor') poseRaptor(o, 0, 0, s, 1, t, act, true);
+  else if (F.rig === 'flyer') poseFlyer(o, 0, -70, s, 1, t, F.fly);
+  else poseHuman(o, 0, 0, s, 1, t, F.legs || 'walk', F.arms || 'swing', act, 0, 0);
+}
+const cols = [{ t: 0.6 }, { t: 2.2, act: 1 }, { flash: 1 }, { corpse: 1 }, { old: 1 }], cw = 1400 / cols.length, rh = 900 / foes.length;
+foes.forEach((id, r) => {
+  const F = E.foes[id]; if (!F) return;
+  cols.forEach((k, i) => {
+    const o = [], s = F.scale || 1, x = cw * (i + 0.5), y = rh * (r + 0.8);
+    pose(o, F, k.t ?? 0.6, k.act || 0);
+    if (k.corpse) for (const p of o) { const dx = p[0], dy = p[1] + 30, a = 1.3; p[0] = dx * Math.cos(a) - dy * Math.sin(a); p[1] = -30 + dx * Math.sin(a) + dy * Math.cos(a); }
+    c.save(); c.setTransform(Z, 0, 0, Z, x, y);
+    c.fillStyle = '#b89a74'; c.fillRect(-cw / Z / 2, 0, cw / Z, 14); c.fillStyle = '#a08463'; c.fillRect(-cw / Z / 2, 0, cw / Z, 1.5);
+    drawRig(c, F.rig || 'human', o, F.look, s, 1, !!k.flash, F.hat, k.corpse ? 0 : -1, k.corpse ? 0.6 : undefined, k.old ? { ...F, dino: undefined } : F, !!k.corpse);
+    c.restore();
+  });
+});
+</script>

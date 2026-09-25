@@ -19,6 +19,8 @@ Oyunun real kodunu ekransız işlədir. İnsan kimi nişan alan bot (casual / av
 
 `node tools/sim.js wtest=<era> lv=5 guns=rifle,sniper` hər silahı eyni səviyyədə bir erada sınayır (real effektivlik). `node tools/sim.js ... dump=tools/out/x` + `node tools/econ.js tools/out/x` hər era üçün gəliri, silah gücünü və pulun hara xərcləndiyini göstərir.
 
+`http://localhost:8123/tools/preview.html?era=1&foe=runner,brute,boss` bir eranın düşmənlərini böyük ölçüdə çəkir (yeriş, hücum, vurulma, cəsəd, köhnə görünüş): personaj dizaynını yoxlamaq üçün.
+
 ## Debug rejimi
 Oyunu `?debug` ilə açın: `http://localhost:8123/?debug` və ya https://ilkin-ibishov.github.io/shoot-unlimited/?debug
 - Ayrı yaddaş: əsl irəliləyişinizə toxunmur. Bütün eralar və silahlar açıq, 10M coin.
