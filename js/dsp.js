@@ -194,15 +194,18 @@ const DSP = (() => {
     const out = buf(dur), hp = bq('hp', o.noiseHp ?? 2000), nt = o.noiseTau ?? 0.003, nn = o.noise ?? 0.3;
     for (const [f, a, tau] of modes) {
       if (f >= SR * 0.45) continue;
-      const inc = TAU * f / SR, k = Math.exp(-1 / (tau * SR)); let ph = 0, e = a;
-      for (let n = 0; n < out.length && e > 1e-5; n++) { out[n] += Math.sin(ph) * e; ph += inc; e *= k; }
+      // damped resonator y[n] = 2k·cos(w)·y[n-1] - k²·y[n-2]  ==  a·k^n·sin(n·w), no Math.sin per sample
+      const w = TAU * f / SR, k = Math.exp(-1 / (tau * SR)), c1 = 2 * k * Math.cos(w), c2 = k * k, att = secs(o.att || 0), end = Math.min(out.length, Math.ceil(tau * SR * 11.5));
+      let y2 = 0, y1 = a * k * Math.sin(w);
+      for (let n = 1; n < end; n++) { out[n] += y1 * (n < att ? n / att : 1); const y = c1 * y1 - c2 * y2; y2 = y1; y1 = y; }
     }
+    fadeOut(out, Math.min(0.03, dur * 0.2));
     for (let n = 0; n < out.length && n < secs(nt * 7); n++) out[n] += hp.run(r() * 2 - 1) * nn * Math.exp(-n / (nt * SR));
     return gain(out, o.vel ?? 1);
   }
-  const marimba = (r, f, dur, vel) => modal(r, [[f, 1, 0.25 + 60 / f], [f * 3.93, 0.3, 0.1], [f * 9.2, 0.1, 0.025]], dur + 0.6, { noise: 0.15, noiseHp: 600, vel });
-  const glock = (r, f, vel) => modal(r, [[f, 1, 0.9], [f * 2.76, 0.4, 0.35], [f * 5.4, 0.2, 0.12], [f * 8.93, 0.1, 0.05]], 2, { noise: 0.1, vel });
-  const bell = (r, f, vel) => modal(r, [[f * 0.5, 0.35, 2.2], [f, 1, 1.8], [f * 1.19, 0.5, 1.2], [f * 1.5, 0.35, 0.9], [f * 2, 0.4, 0.7], [f * 2.52, 0.25, 0.5], [f * 3.35, 0.15, 0.3]], 3, { noise: 0.2, vel });
+  const marimba = (r, f, dur, vel) => { const tau = Math.min(0.55, 0.25 + 60 / f); return modal(r, [[f, 1, tau], [f * 3.93, 0.3, 0.1], [f * 9.2, 0.1, 0.025]], Math.max(dur + 0.3, tau * 4), { noise: 0.15, noiseHp: 600, vel }); };
+  const glock = (r, f, vel) => modal(r, [[f, 1, 0.9], [f * 2.76, 0.4, 0.35], [f * 5.4, 0.2, 0.12], [f * 8.93, 0.1, 0.05]], 3.5, { noise: 0.1, vel });
+  const bell = (r, f, vel) => modal(r, [[f * 0.5, 0.35, 2.2], [f, 1, 1.8], [f * 1.19, 0.5, 1.2], [f * 1.5, 0.35, 0.9], [f * 2, 0.4, 0.7], [f * 2.52, 0.25, 0.5], [f * 3.35, 0.15, 0.3]], 7, { noise: 0.2, vel });
   const plate = (r, f, dur, vel) => modal(r, [[f, 1, 0.35], [f * 1.505, 0.7, 0.28], [f * 2.157, 0.6, 0.22], [f * 2.708, 0.45, 0.18], [f * 3.49, 0.35, 0.14], [f * 4.3, 0.25, 0.1], [f * 5.9, 0.18, 0.07]], dur, { noise: 0.8, noiseHp: 3000, vel });
   function horn(r, f, dur, o = {}) { // three slightly detuned FM brass voices, darkened
     const out = buf(dur + 0.3);
@@ -435,17 +438,26 @@ const DSP = (() => {
       return trimTail(norm(withVerb(out, 0.3, 0.05), -2));
     }],
     click: [2, r => trimTail(norm(modal(r, [[1650 + r() * 100, 1, 0.012], [4100, 0.35, 0.006]], 0.06, { noise: 0.3, noiseTau: 0.001 }), -3))],
-    coin: [4, r => { const f = 3100 + r() * 400, out = buf(0.4); add(out, coin(r, f)); add(out, coin(r, f * 1.19), 0.04 + r() * 0.02, 0.6); return trimTail(norm(out, -3)); }],
-    buy: [2, r => { // coins cascading into the till + register bell
-      const out = buf(1.2); for (let k = 0; k < 7; k++) add(out, coin(r, 2600 + r() * 1400), k * 0.045 + r() * 0.02, 0.4 + r() * 0.5);
-      add(out, bell(r, 1320, 0.6), 0.06); return trimTail(norm(withVerb(out, 0.5, 0.15), -2));
+    coin: [4, r => { // pickup: one short, warm wooden note (pentatonic, so quick pickups sound like a little run), no metal
+      const f = [1046.5, 1174.7, 1318.5, 1568][(r() * 4) | 0], mallet = filt(burstNoise(r, 900, 0.6, 0.0015, 0.02), 'lp', 2500);
+      const out = add(modal(r, [[f, 1, 0.05], [f * 2.01, 0.12, 0.025], [f * 3.93, 0.06, 0.01]], 0.3, { noise: 0, att: 0.002 }), mallet, 0, 0.5);
+      return trimTail(norm(filt(out, 'lp', 5000, 0.7), -3));
+    }],
+    buy: [2, r => { // upgrade bought: soft felt thump + a rising, warm two-note marimba/string figure
+      const out = buf(1.1); add(out, thud(r, 150, 85, 0.035, 700), 0, 0.5);
+      [['G4', 0], ['D5', 0.075]].forEach(([n, at]) => {
+        const f = mtof(note(n));
+        add(out, marimba(r, f, 0.25, 0.9), at, 0.8);
+        add(out, pluck(r, f, 0.4, { bright: 0.4, decay: 0.8, vel: 0.7, pos: 0.25 }), at + 0.004, 0.45);
+      });
+      return trimTail(norm(filt(withVerb(out, 0.45, 0.12), 'lp', 4500, 0.7), -2));
     }],
     wave: [1, r => { // wave cleared: harp-like arpeggio over a soft brass chord
       const out = buf(2.4); ['C5', 'E5', 'G5', 'C6'].forEach((n, i) => add(out, pluck(r, mtof(note(n)), 1.5, { bright: 0.6, decay: 1.8, vel: 0.9 }), i * 0.07));
       for (const n of ['C4', 'G4', 'E5']) add(out, horn(r, mtof(note(n)), 0.7, { vel: 0.5, a: 0.12 }), 0.05, 0.25);
       return trimTail(norm(withVerb(out, 0.7, 0.3), -2));
     }],
-    perk: [1, r => { const out = buf(2.4); ['G5', 'B5', 'D6', 'G6'].forEach((n, i) => add(out, glock(r, mtof(note(n)), 0.8), i * 0.06)); return trimTail(norm(withVerb(out, 0.8, 0.4), -3)); }],
+    perk: [1, r => { const out = buf(3.8); ['G5', 'B5', 'D6', 'G6'].forEach((n, i) => add(out, glock(r, mtof(note(n)), 0.8), i * 0.06)); return trimTail(norm(withVerb(out, 0.8, 0.4), -3)); }],
     slow: [1, r => { // bullet time: suck-in swell, then a deep hit that sinks
       const out = buf(1.8), sw = reverseSwell(r, 0.5); add(out, sw, 0, 1.5 / (peak(sw) || 1));
       let ph = 0; const at = secs(sw.length / SR);
