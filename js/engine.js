@@ -131,7 +131,7 @@ const Music = {
   set(key, lvl) { if (MUSIC[key]) this.key = key; this.lvl = lvl; },
   start() {
     const a = Sfx.ac; if (!a || this.g) return;
-    this.g = a.createGain(); this.g.gain.value = 0.16; this.g.connect(a.destination);
+    this.g = a.createGain(); this.g.gain.value = 0.4; this.g.connect(a.destination);
     this.t = a.currentTime + 0.1;
     setInterval(() => this.tick(), 50);
   },
@@ -144,18 +144,18 @@ const Music = {
   beat(t, i) {
     const m = MUSIC[this.key], s = i % 16, bar = i >> 4, L = this.lvl, d = 15 / m.bpm, deg = m.prog[bar % 4];
     const N = (k, o) => m.root + 12 * o + m.sc[(deg + k) % 7] + 12 * Math.floor((deg + k) / 7);
-    if (s === 0) for (const k of [0, 2, 4]) this.note(t, d * 16, N(k, 1), 'triangle', 0.035, 1200, 0.3); // pad
+    if (s === 0) for (const k of [0, 2, 4]) this.note(t, d * 16, N(k, 1), 'triangle', 0.06, 1400, 0.3); // pad
     if (L === 0) {
-      if (s === 0) this.note(t, d * 16, N(0, 0), 'sine', 0.2, 400, 0.05);
-      if (s % 4 === 0) this.note(t, d * 3, N(ARP[s / 4 + (bar & 1) * 4], 2), 'triangle', 0.04, 1800);
+      if (s === 0) this.note(t, d * 16, N(0, 0), 'triangle', 0.15, 900, 0.05);
+      if (s % 4 === 0) this.note(t, d * 3, N(ARP[s / 4 + (bar & 1) * 4], 2), 'triangle', 0.09, 2200);
       return;
     }
     if (s % 4 === 0 || (L === 2 && s === 10)) this.drum(t, 'k');
     if (s === 4 || s === 12) this.drum(t, 's');
     if (L === 2 || s % 2 === 1) this.drum(t, 'h');
-    if ([0, 3, 6, 8, 11, 14].includes(s)) this.note(t, d * 2, N(0, 0), 'sawtooth', 0.12, 500);
-    if (s % 2 === 0) this.note(t, d * 1.6, N(ARP[s / 2], 2), m.lead, 0.03, 2400);
-    if (bar % 8 >= 4 && MEL_STEPS.includes(s)) this.note(t, d * 3, N(MEL[(s + bar * 3) % 8], 3), m.lead, 0.035, 3000, 0.02);
+    if ([0, 3, 6, 8, 11, 14].includes(s)) this.note(t, d * 2, N(0, 0), 'sawtooth', 0.12, 1000); // bright enough for phone speakers
+    if (s % 2 === 0) this.note(t, d * 1.6, N(ARP[s / 2], 2), m.lead, 0.06, 2400);
+    if (bar % 8 >= 4 && MEL_STEPS.includes(s)) this.note(t, d * 3, N(MEL[(s + bar * 3) % 8], 3), m.lead, 0.07, 3000, 0.02);
   },
   note(t, dur, midi, type, vol, cut, atk = 0.005) {
     const a = Sfx.ac, o = a.createOscillator(), f = a.createBiquadFilter(), g = a.createGain();
@@ -167,12 +167,12 @@ const Music = {
     const a = Sfx.ac, g = a.createGain();
     if (k === 'k') {
       const o = a.createOscillator(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
-      g.gain.setValueAtTime(0.7, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      g.gain.setValueAtTime(0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
       o.connect(g).connect(this.g); o.start(t); o.stop(t + 0.2); return;
     }
     const s = a.createBufferSource(), f = a.createBiquadFilter(), hat = k === 'h', dur = hat ? 0.04 : 0.12;
     s.buffer = Sfx.nb; f.type = hat ? 'highpass' : 'bandpass'; f.frequency.value = hat ? 7000 : 1800;
-    g.gain.setValueAtTime(hat ? 0.12 : 0.35, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    g.gain.setValueAtTime(hat ? 0.15 : 0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     s.connect(f).connect(g).connect(this.g); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
   },
 };
