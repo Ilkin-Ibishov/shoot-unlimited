@@ -433,6 +433,46 @@ function drawShadows(c) {
   for (const cr of crates) sh(cr.x + cr.n * 13, cr.n * 15 + 4);
   c.fill();
 }
+// embedded stones, cracks and grit; hashed per column so nothing flickers or repeats while scrolling
+const GDETAIL = { city: [3, 4, 1], jungle: [3, 5, 1.15], castle: [2, 4, 1.3], desert: [5, 7, 0.75], west: [3, 4, 1], sea: [6, 8, 0.7], future: [3, 6, 1] }; // stone every N cols, crack every M, size
+function drawGroundDetail(c, i0, i1) {
+  const [sN, cN, sz] = GDETAIL[era.bg] || [4, 5, 1], g = era.ground, tech = era.bg === 'future';
+  const dark = new Path2D(), light = new Path2D(), hi = new Path2D(), lo = new Path2D(), crack = new Path2D(), grit = new Path2D();
+  for (let i = i0 - 1; i <= i1 + 1; i++) {
+    const h = colHash(i ^ 0x1f3d5b79), top = colY(i);
+    if (h % sN === 0) {
+      const r = mulberry32(h), x = i * TILE + r() * TILE, y = top + 12 + r() * r() * 150, rad = (3 + r() * 6) * sz;
+      if (tech) { light.moveTo(x + 2.4, y); light.arc(x, y, 2.4, 0, TAU); hi.moveTo(x - 1.5, y - 0.8); hi.lineTo(x + 0.8, y - 1.6); } // bolts
+      else {
+        const p = r() < 0.6 ? dark : light, n = 6 + (r() * 3 | 0), a0 = r() * TAU;
+        for (let k = 0; k < n; k++) {
+          const a = a0 + k / n * TAU, rr = rad * (0.75 + r() * 0.35), px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr * 0.7;
+          if (k) p.lineTo(px, py); else p.moveTo(px, py);
+        }
+        p.closePath();
+        hi.moveTo(x - rad * 0.55, y - rad * 0.3); hi.quadraticCurveTo(x, y - rad * 0.72, x + rad * 0.45, y - rad * 0.38); // lit upper edge
+        lo.moveTo(x - rad * 0.6, y + rad * 0.45); lo.quadraticCurveTo(x, y + rad * 0.85, x + rad * 0.65, y + rad * 0.4); // shade where it sits in the soil
+      }
+    }
+    if ((h >>> 8) % cN === 0) { // crack: jagged, heading down, one short branch
+      const r = mulberry32(h ^ 0xabc), dir = r() < 0.5 ? -1 : 1, segs = 3 + (r() * 3 | 0);
+      let x = i * TILE + r() * TILE, y = top + 4 + r() * 60;
+      crack.moveTo(x, y);
+      for (let k = 0; k < segs; k++) {
+        x += dir * (2 + r() * 6) * (r() < 0.3 ? -1 : 1); y += 5 + r() * 8; crack.lineTo(x, y);
+        if (k === 1) { crack.lineTo(x + dir * 7, y + 4); crack.moveTo(x, y); }
+      }
+    }
+    if ((h >>> 16) % 2 === 0) grit.rect(i * TILE + (h >>> 20) % TILE, top + 8 + (h >>> 5) % 90, 1.6, 1.6);
+  }
+  c.fillStyle = shade(g, 0.8); c.fill(dark);
+  c.fillStyle = shade(g, tech ? 1.35 : 1.05); c.fill(light);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = shade(g, 0.68); c.lineWidth = 1.6; c.stroke(lo);
+  c.strokeStyle = shade(g, 1.18); c.lineWidth = 1.2; c.stroke(hi);
+  c.strokeStyle = shade(g, tech ? 0.75 : 0.62); c.lineWidth = 1.3; c.stroke(crack);
+  c.fillStyle = shade(g, 0.72); c.fill(grit);
+}
 function drawGround(c) {
   const i0 = Math.floor(cam.x / TILE) - 1, i1 = Math.ceil((cam.x + viewW) / TILE) + 1;
   ensureGround(i1 * TILE + TILE, i0 * TILE);
@@ -442,6 +482,7 @@ function drawGround(c) {
   if (G.gEra !== era) { G.gEra = era; RIM = rgba(mix(era.sky[1], '#ffffff', 0.35), 0.3); G.gGrad = c.createLinearGradient(0, 300, 0, VIEW_H); G.gGrad.addColorStop(0, era.ground); G.gGrad.addColorStop(1, shade(era.ground, 0.7)); }
   c.fillStyle = G.gGrad; c.fill(fill);
   c.save(); c.clip(fill);
+  if (!GFX_LOW) drawGroundDetail(c, i0, i1);
   c.translate(0, 9); c.strokeStyle = 'rgba(0,0,0,0.08)'; c.lineWidth = 14; c.stroke(top); // soft shade under the lip
   c.restore();
   c.lineCap = 'butt'; c.lineJoin = 'miter';
@@ -459,7 +500,6 @@ function drawGround(c) {
     let h = Math.imul(i ^ 0x5bd1e995, 2654435761) >>> 0; h ^= h >>> 15;
     const x = i * TILE + (h % 13) + 3, y = colY(i);
     if (era.tuft && h % 5 < 2) { tuft.moveTo(x - 3, y); tuft.lineTo(x - 5, y - 6); tuft.moveTo(x, y); tuft.lineTo(x, y - 8); tuft.moveTo(x + 3, y); tuft.lineTo(x + 5, y - 5); }
-    else if (h % 7 === 3) c.fillRect(x, y + 6, 4, 3);
   }
   if (era.tuft) { c.lineCap = 'round'; c.strokeStyle = era.tuft; c.lineWidth = 2; c.stroke(tuft); }
 }
