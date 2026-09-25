@@ -310,6 +310,199 @@ function drawFlyer(c, p, look, s, f, flash, cut, headAng, kind, lod) {
   c.save(); flyFrame(c, h, hx, hy, f); c.lineCap = 'round'; c.lineJoin = 'round'; flyHead(c, kind, look, s, flash, col); c.restore();
 }
 
+// ===== dinosaurs (raptor rig): one smooth silhouette through the spine points (tail tip -> hip -> chest -> neck ->
+// head), a modelled skull with a working jaw, digitigrade legs with toes, small clawed arms. Painted with
+// countershading (dark back, pale belly), dorsal stripes, skin speckles and a lit top edge.
+// tw/bw: half-thickness above/below the spine at points 5,4,3,2,1,0; belly: sag between hip and chest.
+const DINO = {
+  raptor:  { tw: [0.5, 3, 6.5, 6.5, 3.2, 3], bw: [0.5, 3.4, 7.5, 8.5, 3.8, 3.4], belly: 2.6, head: 1,    arm: 1,    sickle: 1, stripes: 1, eye: '#e0a93a' },
+  crusher: { tw: [0.7, 3.8, 8, 8, 4, 3.6],     bw: [0.7, 4.2, 9, 10.5, 4.6, 4],   belly: 3,   head: 1.15, arm: 0.9,  sickle: 1, stripes: 1, quills: 1, eye: '#e8c547' },
+  rex:     { tw: [0.8, 4.6, 8.5, 9, 6.2, 5.6],  bw: [0.8, 4.8, 9.5, 12, 7, 6.4],   belly: 3.5, head: 1.7,  arm: 0.45, sickle: 0, stripes: 0, spots: 1, eye: '#d8742a' },
+};
+// quadratic curves through the midpoints of a polyline (smooth, passes through the ends)
+function smoothPath(c, Q, move) {
+  if (move) c.moveTo(Q[0][0], Q[0][1]); else c.lineTo(Q[0][0], Q[0][1]);
+  for (let i = 1; i < Q.length - 1; i++) c.quadraticCurveTo(Q[i][0], Q[i][1], (Q[i][0] + Q[i + 1][0]) / 2, (Q[i][1] + Q[i + 1][1]) / 2);
+  c.lineTo(Q[Q.length - 1][0], Q[Q.length - 1][1]);
+}
+// a muscled limb A -> B: radius r0 -> r1 with an outward bulge at 40 %
+function muscle(c, A, B, r0, r1, bulge = 0) {
+  const dx = B[0] - A[0], dy = B[1] - A[1], d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d, rm = ((r0 + r1) / 2 + bulge) * 1.2;
+  const M = [A[0] + dx * 0.4, A[1] + dy * 0.4], a = Math.atan2(ny, nx);
+  c.beginPath();
+  c.moveTo(A[0] + nx * r0, A[1] + ny * r0); c.quadraticCurveTo(M[0] + nx * rm, M[1] + ny * rm, B[0] + nx * r1, B[1] + ny * r1);
+  c.arc(B[0], B[1], r1, a, a - Math.PI, true); // round end at B
+  c.quadraticCurveTo(M[0] - nx * rm, M[1] - ny * rm, A[0] - nx * r0, A[1] - ny * r0);
+  c.arc(A[0], A[1], r0, a + Math.PI, a, true);
+  c.closePath();
+}
+const _hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+function drawDino(c, p, look, s, f, flash, cut, headAng, kind, lod) {
+  const K = DINO[kind] || DINO.raptor, rich = !flash && !lod && !GFX_LOW;
+  const W = flash ? '#fff' : null, body = W || look.s, line = shade(look.p, 0.32);
+  const belly = W || mix(look.k, '#efe2bd', 0.55), mid = W || mix(body, belly, 0.45), stripe = rgba(shade(look.p, 0.55), 0.75);
+  // --- spine: Catmull-Rom through the rig points, sampled; v = point index + t
+  const Q = cut === 0 ? [p[5], p[4], p[3], p[2], p[1]] : [p[5], p[4], p[3], p[2], p[1], p[0]], S = [], N = 5;
+  for (let i = 0; i < Q.length - 1; i++) {
+    const a = Q[Math.max(0, i - 1)], b = Q[i], e = Q[i + 1], d = Q[Math.min(Q.length - 1, i + 2)];
+    for (let k = 0; k < N; k++) {
+      const t = k / N, t2 = t * t, t3 = t2 * t, cr = j => 0.5 * (2 * b[j] + (e[j] - a[j]) * t + (2 * a[j] - 5 * b[j] + 4 * e[j] - d[j]) * t2 + (3 * b[j] - a[j] - 3 * e[j] + d[j]) * t3);
+      S.push([cr(0), cr(1), i + t]);
+    }
+  }
+  S.push([Q[Q.length - 1][0], Q[Q.length - 1][1], Q.length - 1]);
+  const T = [], B = [], U = [], sm = x => x * x * (3 - 2 * x);
+  for (let i = 0; i < S.length; i++) {
+    const A = S[Math.max(0, i - 1)], C = S[Math.min(S.length - 1, i + 1)];
+    let tx = C[0] - A[0], ty = C[1] - A[1]; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+    const ux = f * ty, uy = -f * tx, v = S[i][2], j = Math.min(4, Math.floor(v)), fr = sm(v - j), sag = j === 2 ? Math.sin(Math.PI * (v - j)) : 0;
+    const tw = lerp(K.tw[j], K.tw[j + 1], fr) * s + sag * 0.6 * s, bw = lerp(K.bw[j], K.bw[j + 1], fr) * s + sag * K.belly * s;
+    T.push([S[i][0] + ux * tw, S[i][1] + uy * tw]); B.push([S[i][0] - ux * bw, S[i][1] - uy * bw]); U.push([ux, uy, tw, bw, tx, ty]);
+  }
+  const at = v => Math.min(S.length - 1, Math.round(v * N)); // sample index of spine position v
+  const silhouette = new Path2D(), e = S.length - 1;
+  smoothPath(silhouette, T, true); // back, round cap at the head end, belly
+  silhouette.quadraticCurveTo(S[e][0] + U[e][4] * U[e][3] * 0.8, S[e][1] + U[e][5] * U[e][3] * 0.8, B[e][0], B[e][1]);
+  smoothPath(silhouette, B.slice().reverse(), false); silhouette.closePath();
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  // --- legs: hip -> knee is the thigh; the lower leg bends back at a derived ankle, then long foot + toes
+  const thigh = (H, Kn) => muscle(c, H, Kn, 8 * s, 3.4 * s, 1 * s);
+  const lower = (H, Kn, F, back) => {
+    const col = W || shade(body, back ? 0.72 : 1), dk = W || shade(body, back ? 0.6 : 0.8);
+    const dx = F[0] - Kn[0], dy = F[1] - Kn[1], l = Math.hypot(dx, dy) || 1; let nx = -dy / l, ny = dx / l;
+    if (nx * (H[0] - Kn[0]) + ny * (H[1] - Kn[1]) < 0) { nx = -nx; ny = -ny; } // the ankle sits on the hip's side of knee->foot
+    const An = [Kn[0] + dx * 0.55 + nx * l * 0.26, Kn[1] + dy * 0.55 + ny * l * 0.26];
+    const ax = F[0] - An[0], ay = F[1] - An[1], al = Math.hypot(ax, ay) || 1, D = [f * ay / al, -f * ax / al], G = [-f * D[1], f * D[0]]; // toes forward, G toward the sole
+    const ft = (a, b) => [F[0] + D[0] * a * s + G[0] * b * s, F[1] + D[1] * a * s + G[1] * b * s];
+    c.beginPath(); // two toes in one path
+    for (const [len, dn] of [[6.5, 2.2], [5, 2.6]]) { const m = ft(len * 0.6, dn * 0.2), t = ft(len, dn); c.moveTo(F[0], F[1]); c.quadraticCurveTo(m[0], m[1], t[0], t[1]); }
+    c.strokeStyle = line; c.lineWidth = 3.8 * s; c.stroke(); c.strokeStyle = dk; c.lineWidth = 2.2 * s; c.stroke();
+    if (K.sickle && !flash) { // the raised killing claw on the second toe
+      const q = [ft(0.7, -1.2), ft(3.9, -3.8), ft(4.9, 1), ft(3.3, -2), ft(2.4, -1.2)];
+      c.beginPath(); c.moveTo(q[0][0], q[0][1]); c.quadraticCurveTo(q[1][0], q[1][1], q[2][0], q[2][1]); c.quadraticCurveTo(q[3][0], q[3][1], q[4][0], q[4][1]); c.closePath();
+      c.fillStyle = back ? '#2a2520' : '#3b342c'; c.fill(); c.strokeStyle = line; c.lineWidth = 1.2; c.stroke();
+    }
+    muscle(c, An, F, 2.2 * s, 1.7 * s); c.fillStyle = dk; c.fill(); c.strokeStyle = line; c.lineWidth = 1.6; c.stroke(); // foot (metatarsus)
+    muscle(c, Kn, An, 3.4 * s, 2.2 * s, 0.7 * s); c.fillStyle = col; c.fill(); c.stroke(); // shin
+  };
+  // --- arm from the base of the neck: upper arm down/back, forearm forward, three hooked fingers
+  const arm = back => {
+    const i = at(3.25), [ux, uy, , bw, tx, ty] = U[i], sc = K.arm * s, dk = W || shade(body, back ? 0.7 : 0.9);
+    const Sh = [S[i][0] - ux * bw * 0.3, S[i][1] - uy * bw * 0.3], E = [Sh[0] - ux * 5.5 * sc - tx * 2 * sc, Sh[1] - uy * 5.5 * sc - ty * 2 * sc];
+    const Wr = [E[0] + tx * 5.5 * sc - ux * 1.2 * sc, E[1] + ty * 5.5 * sc - uy * 1.2 * sc];
+    c.beginPath();
+    for (let k = 0; k < 3; k++) { const a = -0.5 + k * 0.45, dx = tx * Math.cos(a) - ux * Math.sin(a) * 1.4, dy = ty * Math.cos(a) - uy * Math.sin(a) * 1.4;
+      c.moveTo(Wr[0], Wr[1]); c.quadraticCurveTo(Wr[0] + dx * 3 * sc, Wr[1] + dy * 3 * sc, Wr[0] + dx * 3.2 * sc - ux * 1.8 * sc, Wr[1] + dy * 3.2 * sc - uy * 1.8 * sc); }
+    c.lineWidth = 1.1 * sc + 1.2; c.strokeStyle = line; c.stroke(); c.lineWidth = 1.1 * sc; c.strokeStyle = W || '#3b342c'; c.stroke();
+    c.lineWidth = 1.3; c.strokeStyle = line; c.fillStyle = dk;
+    muscle(c, E, Wr, 1.2 * sc, 0.9 * sc); c.fill(); c.stroke();
+    muscle(c, Sh, E, 1.9 * sc, 1.2 * sc, 0.3 * sc); c.fill(); c.stroke();
+  };
+  // far side, behind the body
+  lower(p[3], p[8], p[9], true); thigh(p[3], p[8]); c.fillStyle = W || shade(body, 0.72); c.fill(); c.strokeStyle = line; c.lineWidth = 1.6; c.stroke();
+  arm(true);
+  // the near thigh's ink goes down first: the body covers it where they overlap, so the thigh is outlined only below the belly
+  thigh(p[3], p[6]); c.strokeStyle = line; c.lineWidth = 3.4; c.stroke();
+  // --- body: base fill, paint, ink edge on top (no clip: every painted strip ends exactly on the silhouette edge)
+  c.fillStyle = body; c.fill(silhouette);
+  if (!flash) {
+    const band = (k0, k1, from, to, fill) => { // strip between two relative depths (1 = top edge, -1 = bottom edge)
+      const d = (i, k) => k >= 0 ? U[i][2] * k : U[i][3] * k, P0 = [], P1 = [];
+      for (let i = from; i <= to; i++) { P0.push([S[i][0] + U[i][0] * d(i, k0), S[i][1] + U[i][1] * d(i, k0)]); P1.push([S[i][0] + U[i][0] * d(i, k1), S[i][1] + U[i][1] * d(i, k1)]); }
+      c.beginPath(); smoothPath(c, P0, true); smoothPath(c, P1.reverse(), false); c.closePath(); c.fillStyle = fill; c.fill();
+    };
+    band(-0.05, -0.45, 0, e, mid); band(-0.4, -1, 0, e, belly); // countershading
+    if (rich) {
+      if (K.stripes) { // dorsal stripes, slanting back
+        c.beginPath();
+        for (let v = 0.25; v < 3.4; v += 0.3 + _hash(v * 7) * 0.12) {
+          const i = at(v), j = Math.min(e, i + 1), w = 0.35 + _hash(v) * 0.35, dep = -0.1 - _hash(v * 3) * 0.35;
+          c.moveTo(T[i][0], T[i][1]); c.lineTo(T[j][0] + (T[j][0] - T[i][0]) * w, T[j][1] + (T[j][1] - T[i][1]) * w); c.lineTo(S[i][0] + U[i][0] * U[i][3] * dep, S[i][1] + U[i][1] * U[i][3] * dep); c.closePath();
+        }
+        c.fillStyle = stripe; c.fill();
+      }
+      c.beginPath(); // skin speckles / mottling
+      for (let i = 2; i < e - 1; i++) for (let k = 0; k < (K.spots ? 3 : 2); k++) {
+        const h = _hash(i * 3 + k), dep = (h - 0.25) * 1.1, r = (K.spots ? 1.1 + h * 1.4 : 0.5 + h * 0.5) * s, d = dep >= 0 ? U[i][2] * dep : U[i][3] * dep;
+        const x = S[i][0] + U[i][0] * d + U[i][4] * h * 3 * s, y = S[i][1] + U[i][1] * d + U[i][5] * h * 3 * s;
+        c.moveTo(x + r, y); c.ellipse(x, y, r, r * 0.7, 0, 0, TAU);
+      }
+      c.fillStyle = rgba(shade(look.p, 0.4), 0.35); c.fill();
+      band(1, 0.72, 1, e, RIM); // light on the back
+      band(-0.82, -1, 2, e, 'rgba(0,0,0,.18)'); // underside in shadow
+    }
+  }
+  c.strokeStyle = line; c.lineWidth = 1.8; c.stroke(silhouette);
+  if (K.quills && rich) { // a crest of dark quills along the neck and shoulders
+    c.beginPath();
+    for (let v = 2.4; v < 4.6; v += 0.18) { const i = at(v), [ux, uy, tw, , tx, ty] = U[i], l = (2.6 + _hash(v) * 1.6) * s;
+      c.moveTo(S[i][0] + ux * tw * 0.8, S[i][1] + uy * tw * 0.8); c.lineTo(S[i][0] + ux * (tw + l) - tx * l * 0.9, S[i][1] + uy * (tw + l) - ty * l * 0.9); }
+    c.strokeStyle = shade(look.p, 0.45); c.lineWidth = 1.3; c.stroke();
+  }
+  lower(p[3], p[6], p[7], false);
+  thigh(p[3], p[6]); c.fillStyle = body; c.fill(); // near thigh over the body and the knee
+  if (rich) {
+    c.strokeStyle = rgba(line, 0.3); c.lineWidth = 1; c.stroke(); // soft muscle contour
+    const H = p[3], Kn = p[6], l = Math.hypot(Kn[0] - H[0], Kn[1] - H[1]) || 1; let nx = (H[1] - Kn[1]) / l, ny = (Kn[0] - H[0]) / l;
+    if (nx * f < 0) { nx = -nx; ny = -ny; } // n: toward the front of the thigh
+    const off = (P, k) => [P[0] + nx * k * s, P[1] + ny * k * s];
+    muscle(c, off(H, -2.6), off(Kn, -0.9), 4.6 * s, 1.6 * s); c.fillStyle = 'rgba(0,0,0,.16)'; c.fill(); // shaded back (stays inside the thigh)
+    muscle(c, off(H, 2.4), off(Kn, 0.9), 3.6 * s, 1 * s); c.fillStyle = RIM; c.fill(); // lit front
+  }
+  arm(false);
+  if (cut === 0 && !flash) { const [, , tw, bw, tx, ty] = U[e]; // neck stump
+    c.save(); c.translate(S[e][0] + tx * 0.5 * s, S[e][1] + ty * 0.5 * s); c.rotate(Math.atan2(ty, tx)); c.beginPath(); c.ellipse(0, 0, 1.4 * s, (tw + bw) / 2 * 0.9, 0, 0, TAU);
+    c.fillStyle = '#7a1418'; c.fill(); c.fillStyle = '#e8dcc8'; c.beginPath(); c.arc(0, 0, 0.9 * s, 0, TAU); c.fill(); c.restore(); }
+  // --- head in its own frame: +x along the snout, +y toward the jaw; open jaw while lunging (neck stretched)
+  const h = p[0], nb = p[1]; let hx, hy;
+  if (headAng != null) { hx = Math.sin(headAng); hy = -Math.cos(headAng); } else { hx = h[0] - nb[0]; hy = h[1] - nb[1]; const l = Math.hypot(hx, hy) || 1; hx /= l; hy /= l; }
+  const jaw = lod ? 0.3 : clamp((Math.hypot(h[0] - nb[0], h[1] - nb[1]) / s - 13) / 8, 0, 1);
+  c.save(); flyFrame(c, h, hx, hy, f); c.rotate(0.28); const z = s * K.head; c.scale(z, z);
+  dinoHead(c, K, flash, rich, jaw, { body, belly, line, stripe }, 1.6 / z);
+  c.restore();
+}
+// skull in local units (1 = s): back of the head at x = -7, snout tip at x = 17.5; details stay inside the outline,
+// which is inked last (no clipping)
+let SKULL = null; // built on first use (Path2D does not exist in the Node sim)
+function dinoHead(c, K, flash, rich, jaw, C, lw) {
+  const [up, lowJ, lip, lit] = SKULL || (SKULL = [
+    'M-6 3 Q-8 -1 -4 -5 Q0 -6.4 4 -4.8 L10 -3.6 Q15 -3.4 17 -1.6 Q18 0.4 16.4 1.6 L6 2.6 L-1 3.1 Z',
+    'M-3 2.4 L15.6 2.1 Q16.4 2.6 15.6 3.3 Q10 4.9 3 5.5 Q-2 6.6 -5.5 5.4 Q-6.8 4 -3 2.4 Z',
+    'M-6 3 Q2 1.2 16.9 0.2 Q17.4 1 16.4 1.6 L6 2.6 L-1 3.1 Z',
+    'M-6.4 -0.8 Q-6.6 -3.4 -4 -5 Q0 -6.4 4 -4.8 L10 -3.6 Q13.5 -3.4 15.5 -2.5 Q12.5 -2.6 10 -2.7 L4 -3.9 Q0 -5.3 -3.4 -4.1 Q-5.5 -2.9 -6.4 -0.8 Z',
+  ].map(d => new Path2D(d)));
+  const teeth = (x0, x1, y, dir) => { c.beginPath(); for (let x = x0; x < x1; x += 1.45) { c.moveTo(x, y); c.lineTo(x + 0.45, y + dir * (1.1 + (x % 3) * 0.12)); c.lineTo(x + 0.9, y); } c.fillStyle = '#efe7cf'; c.fill(); };
+  const a = jaw * 0.5;
+  if (a > 0.02 && !flash) { // mouth interior behind the jaws
+    c.beginPath(); c.moveTo(-3, 2.6); c.lineTo(16, 1.8); c.lineTo(-3 + 18.6 * Math.cos(a), 2.6 + 18.6 * Math.sin(a)); c.closePath(); c.fillStyle = '#5a1b1f'; c.fill();
+  }
+  c.save(); c.translate(-3, 2.4); c.rotate(a); c.translate(3, -2.4); // lower jaw hinges behind the eye
+  c.fillStyle = C.belly; c.fill(lowJ);
+  if (!flash) { teeth(2, 15, 2.4, -1); if (rich) { c.strokeStyle = rgba(C.line, 0.5); c.lineWidth = lw * 0.6; c.beginPath(); c.moveTo(-2, 4.4); c.quadraticCurveTo(6, 4.6, 13, 3.4); c.stroke(); } }
+  c.strokeStyle = C.line; c.lineWidth = lw; c.stroke(lowJ);
+  c.restore();
+  if (!flash) teeth(2.6, 16, 2.3, 1);
+  c.fillStyle = C.body; c.fill(up);
+  if (!flash) {
+    c.fillStyle = C.belly; c.fill(lip); // pale upper lip
+    if (rich) {
+      c.fillStyle = RIM; c.fill(lit);
+      if (K.stripes) { c.beginPath(); c.moveTo(-6.1, -1); c.lineTo(-3.5, -5.2); c.lineTo(-2.6, -2.2); c.closePath(); c.moveTo(5, -4.6); c.lineTo(7, -4.2); c.lineTo(5.4, -2.2); c.closePath(); c.fillStyle = C.stripe; c.fill(); }
+      c.beginPath(); for (const [x, y, r] of [[8, -2.3, 0.5], [10.5, -2.6, 0.45], [12, -1.6, 0.4], [3, -3.2, 0.5], [-4, 0.5, 0.6]]) { c.moveTo(x + r, y); c.arc(x, y, r, 0, TAU); }
+      c.fillStyle = rgba(C.line, 0.3); c.fill();
+    }
+  }
+  c.strokeStyle = C.line; c.lineWidth = lw; c.stroke(up);
+  if (flash) return;
+  c.fillStyle = shade(C.line, 1.4); c.beginPath(); c.ellipse(15.2, -1.5, 1.1, 0.55, -0.2, 0, TAU); c.fill(); // nostril
+  c.fillStyle = shade(C.body, 0.55); c.beginPath(); c.ellipse(-0.6, -2, 2.5, 1.9, 0, 0, TAU); c.fill(); // eye socket
+  c.fillStyle = K.eye; c.beginPath(); c.ellipse(-0.5, -2, 1.7, 1.3, 0, 0, TAU); c.fill();
+  c.fillStyle = '#120d0a'; c.beginPath(); c.ellipse(-0.3, -2, 0.42, 1.15, 0, 0, TAU); c.fill(); // slit pupil
+  c.fillStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.arc(-1.1, -2.6, 0.38, 0, TAU); c.fill();
+  c.strokeStyle = C.line; c.lineWidth = 1.3; c.beginPath(); c.moveTo(-3.8, -3.4); c.quadraticCurveTo(-0.6, -4.7, 2.6, -3.5); c.stroke(); // brow ridge
+  if (rich) { c.strokeStyle = rgba(C.line, 0.55); c.lineWidth = 0.5; c.beginPath(); c.moveTo(-5.4, 0.6); c.quadraticCurveTo(-4.2, 2.2, -2.2, 2.6); c.moveTo(-4.8, -0.6); c.quadraticCurveTo(-3.8, 1, -1.8, 1.4); c.stroke(); } // jaw-muscle creases
+}
+
 // Cartoon rendering: ink outline per part, back limbs shaded darker, era-tinted lit edge (top-left).
 // capsule whose radius goes r0 -> r1 from A to B; ends are 3-point polygons (much cheaper than arcs,
 // and the round-joined ink outline hides the facets)
@@ -326,6 +519,7 @@ function taper(c, A, B, r0, r1) {
 // opt: { deco: outfit detail, face: 'zombie' | 'hero' | default }; lod: cheap mode for corpses (no lit edge)
 function drawRig(c, rig, p, look, s, f, flash, hat, cut = -1, headAng, opt = {}, lod = false) {
   if (rig === 'flyer') return drawFlyer(c, p, look, s, f, flash, cut, headAng, opt.fly, lod);
+  if (opt.dino) return drawDino(c, p, look, s, f, flash, cut, headAng, opt.dino, lod);
   const R = RIGS[rig], col = (k, back) => flash ? '#fff' : shade(look[k] || look.s, back ? 0.76 : 1);
   c.lineCap = 'round'; c.lineJoin = 'round';
   R.bones.forEach((b, bi) => {
