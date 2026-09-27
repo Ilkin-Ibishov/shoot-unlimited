@@ -604,9 +604,9 @@ function drawPlayer(c) {
   }
   if (G.state !== 'over' && (!run || run.state === 'fight')) { // laser sight
     const ca = Math.cos(p.aim), sa = Math.sin(p.aim);
-    if (wep.spread > 0) { c.fillStyle = 'rgba(255,50,50,.1)'; c.beginPath(); c.moveTo(mx, my); c.arc(mx, my, 240, p.aim - wep.spread, p.aim + wep.spread); c.fill(); } // spread cone: shrinks with Accuracy
-    c.strokeStyle = 'rgba(255,50,50,.5)'; c.lineWidth = 1.5; c.setLineDash([8, 6]); c.beginPath(); c.moveTo(mx, my); c.lineTo(mx + ca * 240, my + sa * 240); c.stroke(); c.setLineDash([]);
-    c.globalCompositeOperation = 'lighter'; glow(c, mx + ca * 240, my + sa * 240, 6, '#ff3030', 0.9); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+    if (wep.spread > 0) { c.fillStyle = 'rgba(255,50,50,.1)'; c.beginPath(); c.moveTo(mx, my); c.arc(mx, my, 96, p.aim - wep.spread, p.aim + wep.spread); c.fill(); } // spread cone: shrinks with Accuracy
+    c.strokeStyle = 'rgba(255,50,50,.5)'; c.lineWidth = 1.5; c.setLineDash([8, 6]); c.beginPath(); c.moveTo(mx, my); c.lineTo(mx + ca * 96, my + sa * 96); c.stroke(); c.setLineDash([]);
+    c.globalCompositeOperation = 'lighter'; glow(c, mx + ca * 96, my + sa * 96, 6, '#ff3030', 0.9); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
   }
   if (run && p.reload > 0) { obox(c, p.x - 20, p.y - 122, 40, 4, '#2a2d38'); c.fillStyle = '#ffd34d'; c.fillRect(p.x - 20, p.y - 122, 40 * (1 - p.reload / wep.reload), 4); }
 }
