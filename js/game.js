@@ -122,6 +122,7 @@ function makeEnemy(type, x, idle) {
 }
 function poseEnemy(e) {
   if (e.rig === 'raptor') poseRaptor(e.pts, e.x, e.y, e.s, e.f, e.phase, e.act, e.walking);
+  else if (e.rig === 'flyer') poseFlyer(e.pts, e.x, e.y, e.s, e.f, G.time + e.phase, e.F.fly);
   else if (e.F.anim === 'zombie') poseZombie(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time + e.phase, e.walking, e.act, e.flinch);
   else if (e.F.anim === 'sprinter') poseSprinter(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time * 2 + e.phase, e.walking, e.act, e.flinch);
   else if (e.F.anim === 'tank') poseTank(e.pts, e.x, e.y, e.s, e.f, e.walking ? e.phase : G.time + e.phase, e.walking, e.act, e.flinch);

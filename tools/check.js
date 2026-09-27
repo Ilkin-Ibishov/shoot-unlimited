@@ -1,6 +1,7 @@
 // Sanity checks for content data + ragdoll physics. Run: node tools/check.js
 const fs = require('fs'), vm = require('vm'), path = require('path'), assert = require('assert');
-const ctx = vm.createContext({ console, Math, window: {} });
+const gameSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'game.js'), 'utf8');
+const ctx = vm.createContext({ console, Math, window: {}, gameSrc });
 for (const f of ['data.js', 'engine.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'), ctx, { filename: f });
 
 vm.runInContext(`
@@ -10,10 +11,13 @@ vm.runInContext(`
     const F = E.foes[k]; ok(F, E.name + ' missing ' + k);
     ok(RIGS[F.rig || 'human'], E.name + '/' + k + ' bad rig');
     ok(F.look && F.look.k && F.look.s, E.name + '/' + k + ' look');
+    if (F.rig === 'flyer') ok(FLY[F.fly], E.name + '/' + k + ' bad fly kind ' + F.fly);
     if (k === 'ranged' || k === 'boss') ok(!F.proj || PROJ[F.proj], E.name + '/' + k + ' bad proj');
     if (F.held === 'shield') ok(F.arms === 'shield', E.name + '/' + k + ' shield needs shield arms');
     for (const m of F.moves || []) ok(['summon', 'charge', 'throw'].includes(m), 'bad move ' + m);
   }
+  ok(gameSrc.includes("e.rig === 'flyer'"), 'game.js poseEnemy missing flyer rig handler');
+  ok(gameSrc.includes("e.rig === 'raptor'"), 'game.js poseEnemy missing raptor rig handler');
   ok(new Set(WEAPONS.map(w => w.id)).size === WEAPONS.length, 'dup weapon id');
   for (const u of UPGRADES) { ok(UP[u.id], 'no curve ' + u.id); for (let l = 1; l <= u.max; l++) ok(upCost(u, l) > upCost(u, l - 1), 'cost not rising ' + u.id); }
   // every rig poses to finite points and a ragdoll settles on flat ground without exploding
