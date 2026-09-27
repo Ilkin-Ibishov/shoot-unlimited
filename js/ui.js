@@ -76,9 +76,10 @@ const UI = {
     $('hudCoinBox').classList.toggle('hidden', run.endless);
     this.boss(null);
   },
-  banner(title, sub) {
+  banner(title, sub, pulse) { // pulse: the hint is about the ability buttons, so make them throb
     const b = $('banner'); b.querySelector('b').textContent = title; b.querySelector('small').textContent = sub || '';
     b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+    if (pulse) for (const id of ['btnNade', 'btnBT']) { const a = $(id); a.classList.remove('pulse'); void a.offsetWidth; a.classList.add('pulse'); }
   },
   boss(e) {
     $('bossBar').classList.toggle('hidden', !e);
@@ -197,7 +198,7 @@ const UI = {
       <button class="fight" data-go>${d.won ? 'CONTINUE' : 'UPGRADE & RETRY'}</button>`, e => {
       const x2 = e.target.closest('[data-x2]');
       if (x2) { tap(); x2.disabled = true; Platform.ad('rewarded', ok => { if (ok) { save.coins += d.coins; persist(); x2.textContent = 'COINS DOUBLED!'; } else x2.remove(); }); }
-      else if (e.target.closest('[data-go]')) { tap(); const b = e.target.closest('[data-go]'); b.disabled = true; Platform.ad('midgame', backToMenu); }
+      else if (e.target.closest('[data-go]')) { tap(); const b = e.target.closest('[data-go]'); b.disabled = true; save.stats.runs > 1 ? Platform.ad('midgame', backToMenu) : backToMenu(); } // no ad after a newcomer's very first run
     });
   },
 };

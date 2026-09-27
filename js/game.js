@@ -199,7 +199,7 @@ function nextWave() {
   if (boss) r.queue.splice(1, 0, 'boss');
   r.size = r.queue.length; r.killedW = 0; r.spawnT = 1.2; r.state = 'fight'; r.crateT = rand(6, 10);
   if (r.endless && w > 0 && w % 5 === 0) UI.banner('TIME RIFT', era.name + ' · ' + era.year);
-  else UI.banner(boss ? 'BOSS' : 'WAVE ' + (w + 1), boss ? era.foes.boss.name : r.endless ? era.name : save.stats.runs <= 2 && HINTS[w] || '');
+  else { const hint = !boss && !r.endless && save.stats.runs <= 2 && HINTS[w]; UI.banner(boss ? 'BOSS' : 'WAVE ' + (w + 1), boss ? era.foes.boss.name : r.endless ? era.name : hint || '', hint && w === HINTS.length - 1); }
   placeCrates(player.x + 260, cam.x + viewW - 60);
 }
 function updateSpawns(dt) {

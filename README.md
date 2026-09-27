@@ -8,7 +8,6 @@ python -m http.server 8123
 ```
 Sonra `http://localhost:8123` açın. Telefonda eyni Wi‑Fi-da `http://<kompüter-IP>:8123` açıb "Add to Home screen" etmək olar (PWA, offline işləyir).
 
-Dev cheat: `?rich` URL-ə əlavə etsəniz +1M coin verir.
 Yoxlama: `node tools/check.js`
 
 ## Balans simulyatoru

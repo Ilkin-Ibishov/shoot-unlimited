@@ -36,10 +36,10 @@
   - uğurlu olsa 50% HP ilə davam edilir, yaxındakı düşmənlər partlayışla geri itələnir və 1–2 s toxunulmazlıq verilir;
   - reklam alınmasa birbaşa nəticə ekranı açılır.
   Bu 1.4-dəki ❤️ Revive-ın pulsuz, reklamlı versiyasıdır. Endless-də də işləyə bilər (rekordu artırır, amma coin vermir).
-- [ ] **"Hər 3 oyundan bir" sayğacı lazım deyil.** Midgame artıq nəticə ekranındakı CONTINUE-da çağırılır, tezliyi isə CrazyGames özü məhdudlaşdırır (~3 dəq). Öz sayğacımız bu limitin üstünə düşüb reklamı daha da seyrəldərdi. Yalnız bir qayda əlavə et: ilk run bitəndə midgame göstərilməsin (yeni oyunçunu ilk dəqiqədə itirməmək üçün).
-- [ ] **Təlimat:** tam tutorial lazım deyil. İlk 2 run-da dalğa bannerində ipuçları artıq var (`HINTS`, toxunuş və PC üçün ayrı). Kiçik əlavə: bullet time və qumbara ilk dəfə hazır olanda düymə 2–3 s parıldasın. Daha çoxu yalnız data göstərsə lazımdır (bax: 4).
-- [ ] README-dəki `?rich` cheat-i koddan artıq silinib. Sətri README-dən də sil.
-- [ ] `?cg` ilə lokal yoxla: reklam callback-ləri, səsin dayanması, bulud yaddaşı, `gameplayStart/Stop`. CrazyGames-in SDK test mühiti (`environment === 'local'`) saxta reklam göstərir.
+- [x] **"Hər 3 oyundan bir" sayğacı lazım deyil.** Midgame artıq nəticə ekranındakı CONTINUE-da çağırılır, tezliyi isə CrazyGames özü məhdudlaşdırır (~3 dəq). Öz sayğacımız bu limitin üstünə düşüb reklamı daha da seyrəldərdi. Yalnız bir qayda əlavə et: ilk run bitəndə midgame göstərilməsin (yeni oyunçunu ilk dəqiqədə itirməmək üçün).
+- [x] **Təlimat:** tam tutorial lazım deyil. İlk 2 run-da dalğa bannerində ipuçları artıq var (`HINTS`, toxunuş və PC üçün ayrı). Kiçik əlavə: bullet time və qumbara ilk dəfə hazır olanda düymə 2–3 s parıldasın. Daha çoxu yalnız data göstərsə lazımdır (bax: 4).
+- [x] README-dəki `?rich` cheat-i koddan artıq silinib. Sətri README-dən də sil.
+- [x] `?cg` ilə lokal yoxla: reklam callback-ləri, səsin dayanması, bulud yaddaşı, `gameplayStart/Stop`. CrazyGames-in SDK test mühiti (`environment === 'local'`) saxta reklam göstərir. 2026-09-27-də yoxlandı: SDK yüklənir, rewarded reklam `true` qaytarır, `inAd` vaxtı səs dayanır, `data` yazılır/oxunur. **Diqqət:** `?cg` açılanda SDK-nın lokal nüsxəsi localStorage-dakı adi save-in üstünə yazılır ("bulud üstündür" qaydası). Əsl irəliləyişin olan brauzerdə `?cg` açma.
 
 
 ## 1. Monetizasiya (əsas prioritet)

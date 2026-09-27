@@ -100,6 +100,8 @@ button:disabled { cursor: default; }
 .abil .cd { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.6); z-index: 1; }
 .abil .fill { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(57,140,255,.55); z-index: 1; }
 .abil.ready { border-color: var(--yellow); }
+.abil.pulse { animation: pulse .45s 6 alternate; }
+@keyframes pulse { to { transform: scale(1.18); border-color: var(--yellow); box-shadow: 0 0 22px var(--yellow); } }
 #btnBT.on { border-color: var(--blue); box-shadow: 0 0 18px var(--blue); }
 #keysHint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); font-size: 11px; opacity: .55; white-space: nowrap; }
 #banner { position: fixed; top: 30%; left: 0; right: 0; text-align: center; pointer-events: none; opacity: 0; }
