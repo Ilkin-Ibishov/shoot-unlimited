@@ -160,7 +160,7 @@ const UI = {
     $('sens').oninput = e => { s.sens = +e.target.value; persist(); };
   },
   perks(opts, cb) {
-    this.open(`<h2>CHOOSE A PERK</h2><div class="perks">${opts.map((p, i) => `<button class="perk" data-i="${i}"><em>${p.icon}</em><b>${p.name}</b><small>${p.desc}</small><i>${run.perks[p.id] ? 'LV ' + (run.perks[p.id] + 1) : 'NEW'}</i></button>`).join('')}</div>`, e => {
+    this.open(`<h2>CHOOSE A PERK</h2><div class="perks">${opts.map((p, i) => `<button class="perk" data-i="${i}"><em style="color:${p.color}">${p.icon}</em><b>${p.name}</b><small>${p.desc}</small><i>${run.perks[p.id] ? 'LV ' + (run.perks[p.id] + 1) : 'NEW'}</i></button>`).join('')}</div>`, e => {
       const b = e.target.closest('.perk'); if (!b) return;
       Sfx.play('perk'); this.close(); cb(opts[+b.dataset.i]);
     });

@@ -19,6 +19,35 @@ const BAL = {
   waveCoin: 2, eraCoin: 60, comboCoin: 0.03, comboMax: 10,
 };
 
+// hand-drawn icon set for upgrades/perks (replaces emoji): flat, monochrome, tinted via CSS `color`
+const ICO = {
+  dmg: '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2.5l2.65 6.4 6.85.6-5.2 4.55L17.9 21 12 17.4 6.1 21l1.6-7-5.2-4.55 6.85-.6z"/></svg>',
+  rate: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4"/><path d="M12 2v3"/><circle cx="12" cy="14" r="8"/><path d="M12 14l3.5-3.5"/></svg>',
+  mag: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5h5l1 4.5h-7z"/><path d="M8.3 7h7.4l-1.1 12.3a2 2 0 0 1-2 1.7h-1.2a2 2 0 0 1-2-1.7z"/><path d="M9 11h6"/><path d="M9.3 15h5.4"/></svg>',
+  reload: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 0 1 14.2-6.3L20.5 8"/><path d="M20.5 3v5h-5"/><path d="M20.5 12a8.5 8.5 0 0 1-14.2 6.3L3.5 16"/><path d="M3.5 21v-5h5"/></svg>',
+  acc: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3.8"/><circle cx="12" cy="12" r=".6" fill="currentColor" stroke="none"/><path d="M12 1.5v3"/><path d="M12 19.5v3"/><path d="M1.5 12h3"/><path d="M19.5 12h3"/></svg>',
+  income: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.2" rx="7" ry="3"/><path d="M5 6.2v5.6c0 1.66 3.13 3 7 3s7-1.34 7-3V6.2"/><path d="M5 11.8v5.6c0 1.66 3.13 3 7 3s7-1.34 7-3v-5.6"/></svg>',
+  hp: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l7.5 3v6c0 5.2-3.6 7.9-7.5 9.5-3.9-1.6-7.5-4.3-7.5-9.5v-6z"/><path d="M8.7 12.3l2.3 2.3 4.3-4.6"/></svg>',
+  crit: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="13.5" r="6"/><circle cx="10.5" cy="13.5" r="2"/><path fill="currentColor" stroke="none" d="M18 1.5l1.2 2.6 2.6 1.2-2.6 1.2L18 9.1l-1.2-2.6-2.6-1.2 2.6-1.2z"/></svg>',
+  head: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 0 0-7 7c0 2.7 1.25 4.35 2.25 5.55.4.5.75 1 .75 1.6V19h8v-1.85c0-.6.35-1.1.75-1.6C17.75 14.35 19 12.7 19 10a7 7 0 0 0-7-7z"/><circle cx="9.3" cy="10.3" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10.3" r="1.2" fill="currentColor" stroke="none"/><path d="M9.2 19h5.6v1.2a1 1 0 0 1-1 1h-3.6a1 1 0 0 1-1-1z"/></svg>',
+  pierce: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12h16"/><path d="M15 7.5L19.5 12 15 16.5"/><path d="M7 5v14"/><path d="M12.5 5v14"/></svg>',
+  ricochet: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 19h19"/><path d="M4 19l5-11 4 6 4-9 3 6"/><circle cx="4" cy="19" r="1" fill="currentColor" stroke="none"/></svg>',
+  twin: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5h6l2.2 2.2-2.2 2.2H3z"/><path d="M12.8 8.5h6l2.2 2.2-2.2 2.2h-6z"/></svg>',
+  explosive: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="14" r="6"/><path d="M11 3v3"/><path d="M15.5 4.5l-1.5 2.5"/><path d="M18 8l-2.5 1.3"/><path d="M9 3.3l.9 2.8"/></svg>',
+  homing: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v8a5 5 0 0 0 10 0V3"/><path d="M7 3H3.5v8"/><path d="M20.5 3H17v8"/><path d="M3.5 8h3.5"/><path d="M17 8h3.5"/></svg>',
+  chain: '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M13 2L4 13h6l-1.5 9L20 10h-6z"/></svg>',
+  frost: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M4.5 6.5l15 11"/><path d="M19.5 6.5l-15 11"/><path d="M8.5 3.5l3.5 3 3.5-3"/><path d="M8.5 20.5l3.5-3 3.5 3"/></svg>',
+  fire: '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2c1 3-2 4-2 7a3 3 0 0 0 6 0c1.5 1.5 2 3.3 2 5a6 6 0 0 1-12 0c0-4 3-6 3.5-9 .3-1.6.8-2.3 2.5-3z"/></svg>',
+  hunter: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 1.5v3"/><path d="M12 19.5v3"/><path d="M1.5 12h3"/><path d="M19.5 12h3"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></svg>',
+  vamp: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c4 3 7 6.5 7 10a7 7 0 0 1-14 0c0-3.5 3-7 7-10z"/><path d="M9.5 16l-1 3"/><path d="M14.5 16l1 3"/></svg>',
+  quick: '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M3 5l8 7-8 7z"/><path fill="currentColor" d="M12 5l8 7-8 7z"/></svg>',
+  bigmag: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="7"/><path d="M10.5 3h3l.5 4h-4z"/><path d="M8.7 14a3.3 3.3 0 0 1 6.6 0"/></svg>',
+  rage: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13h4l2-5 3 10 2.5-7 1.5 2h6"/></svg>',
+  greed: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3h5l1.5 3.5h-8z"/><path d="M8.5 6.5h7c2.5 3 3.5 5.6 3.5 8a7 7 0 0 1-14 0c0-2.4 1-5 3.5-8z"/><path d="M12 10v6"/><path d="M10.3 11.2a1.9 1.9 0 0 1 3.4 1.1c0 1.1-1 1.5-1.7 1.7-.7.2-1.7.6-1.7 1.7a1.9 1.9 0 0 0 3.4 1.1"/></svg>',
+  focus: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h12"/><path d="M6 21.5h12"/><path d="M7 2.5v3.2c0 2 1.8 3.3 3.4 4.3.5.3.5 1.3 0 1.6-1.6 1-3.4 2.3-3.4 4.3v3.6"/><path d="M17 2.5v3.2c0 2-1.8 3.3-3.4 4.3-.5.3-.5 1.3 0 1.6 1.6 1 3.4 2.3 3.4 4.3v3.6"/></svg>',
+  medkit: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M12 9v6"/><path d="M9 12h6"/></svg>',
+};
+
 // character upgrades (global): level -> value
 const UP = {
   income: l => 1 + 0.08 * l,
@@ -27,10 +56,10 @@ const UP = {
   head:   l => 2 + 0.15 * l,
 };
 const UPGRADES = [
-  { id: 'income', name: 'Income',      icon: '💰', color: '#3fc15b', base: 25, growth: 1.36, max: 30, show: l => 'x' + UP.income(l).toFixed(2) },
-  { id: 'hp',     name: 'Armor',       icon: '🛡️', color: '#3a8ee6', base: 15, growth: 1.3, max: 30, show: l => UP.hp(l) + ' HP' },
-  { id: 'crit',   name: 'Crit Chance', icon: '🎯', color: '#e84a5f', base: 40, growth: 1.38, max: 20, show: l => Math.round(UP.crit(l) * 100) + '%' },
-  { id: 'head',   name: 'Headshot',    icon: '💀', color: '#6b7a90', base: 35, growth: 1.36,  max: 20, show: l => 'x' + UP.head(l).toFixed(2) },
+  { id: 'income', name: 'Income',      icon: ICO.income, color: '#3fc15b', base: 25, growth: 1.36, max: 30, show: l => 'x' + UP.income(l).toFixed(2) },
+  { id: 'hp',     name: 'Armor',       icon: ICO.hp,     color: '#3a8ee6', base: 15, growth: 1.3, max: 30, show: l => UP.hp(l) + ' HP' },
+  { id: 'crit',   name: 'Crit Chance', icon: ICO.crit,   color: '#e84a5f', base: 40, growth: 1.38, max: 20, show: l => Math.round(UP.crit(l) * 100) + '%' },
+  { id: 'head',   name: 'Headshot',    icon: ICO.head,   color: '#6b7a90', base: 35, growth: 1.36,  max: 20, show: l => 'x' + UP.head(l).toFixed(2) },
 ];
 const upCost = (u, l) => Math.round(u.base * Math.pow(u.growth, l));
 
@@ -39,12 +68,12 @@ const upCost = (u, l) => Math.round(u.base * Math.pow(u.growth, l));
 const WUP = {
   fx: { dmg: l => 1 + 0.08 * l, rate: l => 1 + 0.04 * l, mag: l => 1 + 0.1 * l, reload: l => 1 / (1 + 0.05 * l), acc: l => 1 - 0.06 * l },
   list: [
-    { id: 'dmg',    name: 'Damage',    icon: '💥', color: '#f07b1d', k: 1,   growth: 1.27, max: 10, show: l => 'x' + WUP.fx.dmg(l).toFixed(2) },
-    { id: 'rate',   name: 'Fire Rate', icon: '⏱️', color: '#f2c21b', k: 1,   growth: 1.27, max: 10, show: l => '+' + 4 * l + '%' },
-    { id: 'mag',    name: 'Magazine',  icon: '🔋', color: '#9b6bea', k: 0.7, growth: 1.27, max: 10, show: l => '+' + 10 * l + '%' },
-    { id: 'reload', name: 'Reload',    icon: '🔄', color: '#1fb5b0', k: 0.7, growth: 1.27, max: 10, show: l => (l ? '-' : '') + Math.round((1 - WUP.fx.reload(l)) * 100) + '%' },
+    { id: 'dmg',    name: 'Damage',    icon: ICO.dmg,    color: '#f07b1d', k: 1,   growth: 1.27, max: 10, show: l => 'x' + WUP.fx.dmg(l).toFixed(2) },
+    { id: 'rate',   name: 'Fire Rate', icon: ICO.rate,   color: '#f2c21b', k: 1,   growth: 1.27, max: 10, show: l => '+' + 4 * l + '%' },
+    { id: 'mag',    name: 'Magazine',  icon: ICO.mag,    color: '#9b6bea', k: 0.7, growth: 1.27, max: 10, show: l => '+' + 10 * l + '%' },
+    { id: 'reload', name: 'Reload',    icon: ICO.reload, color: '#1fb5b0', k: 0.7, growth: 1.27, max: 10, show: l => (l ? '-' : '') + Math.round((1 - WUP.fx.reload(l)) * 100) + '%' },
     // shrinks the random spread (L10 = 40% of the base cone); a beam has no spread, so no accuracy upgrade
-    { id: 'acc',    name: 'Accuracy',  icon: '🎯', color: '#e84a5f', k: 0.7, growth: 1.27, max: 10, show: (l, w) => '±' + (w.spread * WUP.fx.acc(l) * 180 / Math.PI).toFixed(1) + '°', no: w => w.beam },
+    { id: 'acc',    name: 'Accuracy',  icon: ICO.acc,    color: '#e84a5f', k: 0.7, growth: 1.27, max: 10, show: (l, w) => '±' + (w.spread * WUP.fx.acc(l) * 180 / Math.PI).toFixed(1) + '°', no: w => w.beam },
   ],
   cost: (w, u) => w.up * u.k,
 };
@@ -65,22 +94,22 @@ const WEAPONS = [
 
 // in-run roguelite perks
 const PERKS = [
-  { id: 'pierce',    icon: '🏹', name: 'Piercing Rounds', desc: 'Bullets pass through +1 enemy',     max: 2 },
-  { id: 'ricochet',  icon: '🎱', name: 'Ricochet',        desc: 'Bullets bounce off the ground',     max: 2 },
-  { id: 'twin',      icon: '✌️', name: 'Twin Shot',       desc: '+1 bullet per shot (-40% dmg)',     max: 2 },
-  { id: 'explosive', icon: '💥', name: 'Explosive Tips',  desc: '8% of hits explode',                max: 2 },
-  { id: 'homing',    icon: '🧲', name: 'Smart Rounds',    desc: 'Bullets curve toward heads',        max: 2 },
-  { id: 'chain',     icon: '⚡', name: 'Tesla Coil',      desc: 'Hits arc to a nearby enemy (20%)',  max: 2 },
-  { id: 'frost',     icon: '❄️', name: 'Cryo Rounds',     desc: 'Hits slow enemies by 45%',          max: 1 },
-  { id: 'fire',      icon: '🔥', name: 'Incendiary',      desc: 'Hits set enemies on fire',          max: 2 },
-  { id: 'hunter',    icon: '💀', name: 'Headhunter',      desc: 'Headshots deal +25% damage',        max: 2 },
-  { id: 'vamp',      icon: '🧛', name: 'Vampire',         desc: 'Kills heal 2% HP',                  max: 3 },
-  { id: 'quick',     icon: '🤹', name: 'Quick Hands',     desc: 'Reload 35% faster',                 max: 3 },
-  { id: 'bigmag',    icon: '🥁', name: 'Drum Mag',        desc: '+50% magazine size',                max: 3 },
-  { id: 'rage',      icon: '😡', name: 'Adrenaline',      desc: '+40% fire rate below 50% HP',       max: 2 },
-  { id: 'greed',     icon: '🤑', name: 'Greed',           desc: '+35% coins this run',               max: 3 },
-  { id: 'focus',     icon: '⏳', name: 'Chrono Focus',    desc: 'Bullet time charges 2x faster',     max: 2 },
-  { id: 'medkit',    icon: '➕', name: 'Field Medic',     desc: 'Heal 50% and +25 max HP',           max: 9 },
+  { id: 'pierce',    icon: ICO.pierce,    color: '#5aa9e6', name: 'Piercing Rounds', desc: 'Bullets pass through +1 enemy',     max: 2 },
+  { id: 'ricochet',  icon: ICO.ricochet,  color: '#e0a72e', name: 'Ricochet',        desc: 'Bullets bounce off the ground',     max: 2 },
+  { id: 'twin',      icon: ICO.twin,      color: '#c97fe0', name: 'Twin Shot',       desc: '+1 bullet per shot (-40% dmg)',     max: 2 },
+  { id: 'explosive', icon: ICO.explosive, color: '#e8593f', name: 'Explosive Tips',  desc: '8% of hits explode',                max: 2 },
+  { id: 'homing',    icon: ICO.homing,    color: '#4fd1c5', name: 'Smart Rounds',    desc: 'Bullets curve toward heads',        max: 2 },
+  { id: 'chain',     icon: ICO.chain,     color: '#f4d03f', name: 'Tesla Coil',      desc: 'Hits arc to a nearby enemy (20%)',  max: 2 },
+  { id: 'frost',     icon: ICO.frost,     color: '#63c9e8', name: 'Cryo Rounds',     desc: 'Hits slow enemies by 45%',          max: 1 },
+  { id: 'fire',      icon: ICO.fire,      color: '#ff6b35', name: 'Incendiary',      desc: 'Hits set enemies on fire',          max: 2 },
+  { id: 'hunter',    icon: ICO.hunter,    color: '#b23a48', name: 'Headhunter',      desc: 'Headshots deal +25% damage',        max: 2 },
+  { id: 'vamp',      icon: ICO.vamp,      color: '#8e1c3f', name: 'Vampire',         desc: 'Kills heal 2% HP',                  max: 3 },
+  { id: 'quick',     icon: ICO.quick,     color: '#f2b705', name: 'Quick Hands',     desc: 'Reload 35% faster',                 max: 3 },
+  { id: 'bigmag',    icon: ICO.bigmag,    color: '#7c6bea', name: 'Drum Mag',        desc: '+50% magazine size',                max: 3 },
+  { id: 'rage',      icon: ICO.rage,      color: '#e0483e', name: 'Adrenaline',      desc: '+40% fire rate below 50% HP',       max: 2 },
+  { id: 'greed',     icon: ICO.greed,     color: '#e8b923', name: 'Greed',           desc: '+35% coins this run',               max: 3 },
+  { id: 'focus',     icon: ICO.focus,     color: '#8b7fd6', name: 'Chrono Focus',    desc: 'Bullet time charges 2x faster',     max: 2 },
+  { id: 'medkit',    icon: ICO.medkit,    color: '#3fc15b', name: 'Field Medic',     desc: 'Heal 50% and +25 max HP',           max: 9 },
 ];
 
 // enemy archetypes; `from` = first wave index they appear in, w = spawn weight
