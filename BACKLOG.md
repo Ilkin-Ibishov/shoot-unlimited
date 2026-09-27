@@ -23,10 +23,23 @@
 ### 0.2 CrazyGames: qalan əl işləri
 - [ ] developer.crazygames.com-da hesab aç və Basic Launch üçün göndər.
 - [ ] Yükləmə üçün zip: `git archive -o shoot-unlimited.zip HEAD index.html manifest.webmanifest icon.svg js`
-- [ ] Kapak şəkilləri (1920×1080, 800×450), qısa təsvir. Təsvirdə fərqləri vurğula: 7 era, perk-lər, endless rift. Məqsəd "kopya" şübhəsini aradan qaldırmaqdır.
+- [ ] Kapak şəkilləri: 1920×1080 (16:9), 800×1200 (2:3), 800×800 (1:1). Ölçüləri göndərəndə portalda yoxla. Qısa təsvir. Təsvirdə fərqləri vurğula: 7 era, perk-lər, endless rift. Məqsəd "kopya" şübhəsini aradan qaldırmaqdır.
 - [ ] QA qan və ya baş qopmasını PEGI 12 üçün çox görsə: `blood` ayarının susmaya görə dəyərini `false` et (`readSave` içində).
-- [ ] Full Launch dəvəti gəlsə: 1.4-dəki revive ekranını CrazyGames rewarded reklamı ilə tətbiq et. Qayda: hər ölümdən sonra yox, arabir.
 - [ ] Basic Launch datasına bax: orta oynama vaxtı və D1. Sonra `BAL`-ı tənzimlə (bənd 3).
+
+### 0.3 CrazyGames: göndərişdən əvvəl kodda (2026-09-27)
+- [ ] **Endless coin verməsin.** İndi `coinMul = 1.2 * 1.1^w` (`js/game.js` `nextWave`) eksponensial böyüyür: 30-cu dalğada adi eradan ~20 dəfə çox coin verir. Endless-də `addCoins` heç nə yazmasın, HUD-da coin sayğacı gizlənsin. Menyu düyməsində "BEST N · just for fun" yazılsın. Nəticə ekranında coin sətri olmasın. `d.coins >= 1` şərtinə görə x2 reklam düyməsi özü yox olacaq.
+- [ ] **Mobildə düymə adları görünməsin.** `#keysHint` toxunuşda artıq gizlidir. Amma 💣/⏳/🔄 düymələrinin altındakı `G` / `SPACE` / `R` (`.abil small`) görünür. Düzəliş CSS-də bir sətirdir: `@media (pointer:coarse) { .abil small { display: none } }`.
+- [ ] **Revive (rewarded).** Ölüm anında modal açılsın: "▶ WATCH AD: CONTINUE" düyməsi, 5 saniyəlik geri sayım və "NO THANKS". Qaydalar:
+  - hər run-da 1 dəfə;
+  - yalnız `Platform.ads` true olanda (Basic Launch və AdBlock-da ümumiyyətlə görünmür);
+  - uğurlu olsa 50% HP ilə davam edilir, yaxındakı düşmənlər partlayışla geri itələnir və 1–2 s toxunulmazlıq verilir;
+  - reklam alınmasa birbaşa nəticə ekranı açılır.
+  Bu 1.4-dəki ❤️ Revive-ın pulsuz, reklamlı versiyasıdır. Endless-də də işləyə bilər (rekordu artırır, amma coin vermir).
+- [ ] **"Hər 3 oyundan bir" sayğacı lazım deyil.** Midgame artıq nəticə ekranındakı CONTINUE-da çağırılır, tezliyi isə CrazyGames özü məhdudlaşdırır (~3 dəq). Öz sayğacımız bu limitin üstünə düşüb reklamı daha da seyrəldərdi. Yalnız bir qayda əlavə et: ilk run bitəndə midgame göstərilməsin (yeni oyunçunu ilk dəqiqədə itirməmək üçün).
+- [ ] **Təlimat:** tam tutorial lazım deyil. İlk 2 run-da dalğa bannerində ipuçları artıq var (`HINTS`, toxunuş və PC üçün ayrı). Kiçik əlavə: bullet time və qumbara ilk dəfə hazır olanda düymə 2–3 s parıldasın. Daha çoxu yalnız data göstərsə lazımdır (bax: 4).
+- [ ] README-dəki `?rich` cheat-i koddan artıq silinib. Sətri README-dən də sil.
+- [ ] `?cg` ilə lokal yoxla: reklam callback-ləri, səsin dayanması, bulud yaddaşı, `gameplayStart/Stop`. CrazyGames-in SDK test mühiti (`environment === 'local'`) saxta reklam göstərir.
 
 
 ## 1. Monetizasiya (əsas prioritet)
