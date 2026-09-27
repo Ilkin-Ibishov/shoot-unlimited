@@ -96,6 +96,7 @@ button:disabled { cursor: default; }
 .abil { position: relative; width: clamp(54px, 15vh, 70px); height: clamp(54px, 15vh, 70px); border-radius: 50%; background: rgba(16,20,31,.7); border: 3px solid rgba(255,255,255,.25); overflow: hidden; font-size: clamp(22px, 6vh, 30px); }
 .abil em { position: relative; z-index: 2; font-style: normal; }
 .abil small { position: absolute; bottom: 4px; left: 0; right: 0; font-size: 8px; opacity: .6; z-index: 2; }
+@media (pointer: coarse) { .abil small { display: none; } } /* key names mean nothing on a phone */
 .abil .cd { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.6); z-index: 1; }
 .abil .fill { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(57,140,255,.55); z-index: 1; }
 .abil.ready { border-color: var(--yellow); }
@@ -113,6 +114,7 @@ button:disabled { cursor: default; }
 .panel h2 { font-size: clamp(22px, 7vh, 34px); margin-bottom: 8px; }
 .panel h2.die { color: var(--red); }
 .panel h2.win { color: var(--yellow); }
+.revT { font-size: 44px; color: var(--yellow); }
 .panel .quip { opacity: .75; font-size: 13px; margin-bottom: 12px; font-family: system-ui, sans-serif; font-weight: 700; }
 .panel .muted { opacity: .6; font-size: 11px; margin: 8px 0; font-family: system-ui, sans-serif; }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
@@ -191,7 +193,7 @@ button:disabled { cursor: default; }
     <div class="bar prog"><i id="progFill"></i><span id="progTxt"></span></div>
     <div class="bar boss hidden" id="bossBar"><i id="bossFill"></i><span id="bossTxt"></span></div>
   </div>
-  <div class="tr"><div class="coins txt"><span class="coin"></span><b id="hudCoins">0</b></div><button id="btnPause" class="sq" aria-label="Pause">❚❚</button></div>
+  <div class="tr"><div class="coins txt" id="hudCoinBox"><span class="coin"></span><b id="hudCoins">0</b></div><button id="btnPause" class="sq" aria-label="Pause">❚❚</button></div>
   <div id="combo"></div>
   <div class="br">
     <button id="btnNade" class="abil" aria-label="Grenade"><i class="cd" id="nadeCd"></i><em>💣</em><small>G</small></button>

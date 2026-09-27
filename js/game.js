@@ -190,7 +190,7 @@ function nextWave() {
   }
   r.hpMul = r.endless ? Math.pow(1.13, w) : era.hp * (1 + BAL.waveHp * w);
   r.dmgMul = r.endless ? 1 + 0.07 * w : (1 + BAL.eraDmg * r.era) * (1 + BAL.waveDmg * w);
-  r.coinMul = r.endless ? 1.2 * Math.pow(1.1, w) : era.coin;
+  r.coinMul = era.coin;
   const boss = r.endless ? w % 10 === 9 : w === r.total - 1;
   const tier = r.endless ? Math.min(w, 9) : w;
   const pool = Object.keys(ARCH).filter(k => k !== 'boss' && ARCH[k].from <= tier);
@@ -241,8 +241,8 @@ function eraCleared() {
 }
 function playerDie() {
   const p = player; if (p.dead) return;
-  p.dead = true; run.state = 'dead'; run.endT = 1.8; G.slowmo = 1;
-  const rd = makeRagdoll('human', p.pts, PLAYER_LOOK, 1, 1, 'hero', -150, -200);
+  p.dead = true; run.was = run.state; run.state = 'dead'; run.endT = 1.8; G.slowmo = 1;
+  const rd = run.corpse = makeRagdoll('human', p.pts, PLAYER_LOOK, 1, 1, 'hero', -150, -200);
   rd.opt = PLAYER_OPT; pushRagdoll(rd, p.x, p.y - 80, -300, -250, 40); addRagdoll(rd);
   bleed(null, p.x, p.y - 60, -1, -0.3, 16);
   Sfx.play('die'); save.stats.deaths++;
@@ -258,6 +258,14 @@ function finish() {
   UI.result({ won, pct, kills: r.kills, heads: r.heads, coins: r.coins, endless: r.endless, wave: r.wave + 1,
     eraName: ERAS[r.era].name, time: r.t, total: save.coins, best: prevBest, record: !won && prevBest > 0 && score > prevBest,
     next: won && r.unlockedNew && r.era + 1 < ERAS.length ? ERAS[r.era + 1].name : '' });
+}
+// one rewarded-ad revive per run, only where the portal serves ads (never during a win)
+function offerRevive() { run.revived = true; G.state = 'revive'; UI.revive(ok => ok ? revive() : finish()); }
+function revive() {
+  const p = player, r = run, i = ragdolls.indexOf(r.corpse);
+  if (i >= 0) ragdolls.splice(i, 1);
+  p.dead = false; p.hp = p.maxHp * 0.5; p.hurt = G.time + 2; r.state = r.was; G.slowmo = 0; G.state = 'play';
+  explode(p.x + 90, p.y - 60, 220, ARCH.walker.hp * r.hpMul * 2, 0); // clears the crowd that got him, knocks the rest back
 }
 function backToMenu() { run = null; G.state = 'menu'; G.slowmo = 0; setupWorld(G.era); spawnDummies(); wep = computeWeapon(); UI.menu(); }
 function pause() { if (G.state !== 'play') return; G.state = 'pause'; UI.pauseMenu(); }
@@ -518,7 +526,7 @@ function popHelmet(e) {
 
 // ===== money =====
 function addCoins(v, wx, wy, fly) {
-  if (!run) return;
+  if (!run || run.endless) return; // endless is for score only: its growing waves would farm the campaign's coins
   run.coins += v; save.coins += v;
   if (fly) {
     const n = Math.min(5, 1 + Math.floor(Math.log2(1 + v)));
@@ -555,7 +563,7 @@ function update(dt, rdt, pdt) {
   r.comboT -= pdt; if (r.comboT <= 0) r.combo = 0;
   if (r.btOn) { r.bt -= rdt * 0.3; if (r.bt <= 0) { r.bt = 0; r.btOn = false; } }
   if (r.state === 'fight' && !r.queue.length && !enemies.length) waveCleared();
-  if (r.endT > 0) { r.endT -= rdt; if (r.endT <= 0) finish(); }
+  if (r.endT > 0) { r.endT -= rdt; if (r.endT <= 0) r.state === 'dead' && !r.revived && r.was !== 'won' && Platform.ads ? offerRevive() : finish(); }
 }
 function updateEnemies(dt) {
   const p = player;

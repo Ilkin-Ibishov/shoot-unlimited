@@ -28,9 +28,9 @@
 - [ ] Basic Launch datasına bax: orta oynama vaxtı və D1. Sonra `BAL`-ı tənzimlə (bənd 3).
 
 ### 0.3 CrazyGames: göndərişdən əvvəl kodda (2026-09-27)
-- [ ] **Endless coin verməsin.** İndi `coinMul = 1.2 * 1.1^w` (`js/game.js` `nextWave`) eksponensial böyüyür: 30-cu dalğada adi eradan ~20 dəfə çox coin verir. Endless-də `addCoins` heç nə yazmasın, HUD-da coin sayğacı gizlənsin. Menyu düyməsində "BEST N · just for fun" yazılsın. Nəticə ekranında coin sətri olmasın. `d.coins >= 1` şərtinə görə x2 reklam düyməsi özü yox olacaq.
-- [ ] **Mobildə düymə adları görünməsin.** `#keysHint` toxunuşda artıq gizlidir. Amma 💣/⏳/🔄 düymələrinin altındakı `G` / `SPACE` / `R` (`.abil small`) görünür. Düzəliş CSS-də bir sətirdir: `@media (pointer:coarse) { .abil small { display: none } }`.
-- [ ] **Revive (rewarded).** Ölüm anında modal açılsın: "▶ WATCH AD: CONTINUE" düyməsi, 5 saniyəlik geri sayım və "NO THANKS". Qaydalar:
+- [x] **Endless coin verməsin.** İndi `coinMul = 1.2 * 1.1^w` (`js/game.js` `nextWave`) eksponensial böyüyür: 30-cu dalğada adi eradan ~20 dəfə çox coin verir. Endless-də `addCoins` heç nə yazmasın, HUD-da coin sayğacı gizlənsin. Menyu düyməsində "BEST N · just for fun" yazılsın. Nəticə ekranında coin sətri olmasın. `d.coins >= 1` şərtinə görə x2 reklam düyməsi özü yox olacaq.
+- [x] **Mobildə düymə adları görünməsin.** `#keysHint` toxunuşda artıq gizlidir. Amma 💣/⏳/🔄 düymələrinin altındakı `G` / `SPACE` / `R` (`.abil small`) görünür. Düzəliş CSS-də bir sətirdir: `@media (pointer:coarse) { .abil small { display: none } }`.
+- [x] **Revive (rewarded).** Ölüm anında modal açılsın: "▶ WATCH AD: CONTINUE" düyməsi, 5 saniyəlik geri sayım və "NO THANKS". Qaydalar:
   - hər run-da 1 dəfə;
   - yalnız `Platform.ads` true olanda (Basic Launch və AdBlock-da ümumiyyətlə görünmür);
   - uğurlu olsa 50% HP ilə davam edilir, yaxındakı düşmənlər partlayışla geri itələnir və 1–2 s toxunulmazlıq verilir;

@@ -54,7 +54,7 @@ const UI = {
     $('btnFight').disabled = locked;
     $('eraPrev').disabled = G.era === 0; $('eraNext').disabled = G.era === ERAS.length - 1;
     const eb = $('btnEndless'); eb.disabled = save.unlocked < 2;
-    eb.innerHTML = save.unlocked < 2 ? '🔒 ENDLESS' : 'ENDLESS' + (save.endless ? `<small>BEST ${save.endless}</small>` : '');
+    eb.innerHTML = save.unlocked < 2 ? '🔒 ENDLESS' : `ENDLESS<small>${save.endless ? 'BEST ' + save.endless + ' · ' : ''}NO COINS · JUST FOR FUN</small>`;
     // bottom bar: [gun | hero] switch + that side's upgrades
     const gun = this.tab === 'gun', w = WEAPONS.find(x => x.id === save.eq) || WEAPONS[0];
     $('ups').innerHTML = `<div class="uptabs"><button class="tab${gun ? ' on' : ''}" data-tab="gun">🔫 ${w.name}</button><button class="tab${gun ? '' : ' on'}" data-tab="hero">🧍 Hero</button></div>`
@@ -73,6 +73,7 @@ const UI = {
   startHud() {
     $('menu').classList.add('hidden'); $('hud').classList.remove('hidden'); this.close(); this.cache = {};
     $('keysHint').classList.toggle('hidden', matchMedia('(pointer:coarse)').matches);
+    $('hudCoinBox').classList.toggle('hidden', run.endless);
     this.boss(null);
   },
   banner(title, sub) {
@@ -171,6 +172,17 @@ const UI = {
       else if (e.target.closest('[data-quit]')) { tap(); quitRun(); }
     });
   },
+  revive(cb) { // 5 s to take the ad; cb(true) only when the ad played to the end
+    let n = 5, done = false;
+    const end = ok => { if (done) return; done = true; clearInterval(t); this.close(); cb(ok); };
+    const t = setInterval(() => { if (--n <= 0) end(false); else $('revT').textContent = n; }, 1000);
+    this.open(`<h2 class="die">YOU DIED</h2><p class="quip">Get back up with half your health?</p><div class="col"><b class="revT" id="revT">5</b>
+      <button class="fight" data-rev>▶ WATCH AD: REVIVE</button><button class="btn" data-no>NO THANKS</button></div>`, e => {
+      const b = e.target.closest('[data-rev]');
+      if (b) { tap(); clearInterval(t); b.disabled = true; Platform.ad('rewarded', end); }
+      else if (e.target.closest('[data-no]')) { tap(); end(false); }
+    });
+  },
   result(d) {
     $('hud').classList.add('hidden');
     const time = `${Math.floor(d.time / 60)}:${String(Math.floor(d.time % 60)).padStart(2, '0')}`;
@@ -178,8 +190,8 @@ const UI = {
     const main = d.won ? `<div><b>${time}</b><small>TIME</small></div>`
       : d.endless ? `<div><b>${d.wave}</b><small>WAVE</small>${cmp}</div>` : `<div><b>${d.pct}%</b><small>PROGRESS</small>${cmp}</div>`;
     this.open(`<h2 class="${d.won ? 'win' : 'die'}">${d.won ? d.eraName.toUpperCase() + ' CLEARED!' : 'YOU DIED'}</h2>
-      <p class="quip">${d.won ? 'History has been rewritten.' : pick(QUIPS)}</p>
-      <div class="stats">${main}<div><b>${d.kills}</b><small>KILLS</small></div><div><b>${d.heads}</b><small>HEADSHOT KILLS</small></div><div><b>${coinIc}${fmt(d.coins)}</b><small>EARNED</small><em>TOTAL ${fmt(d.total)}</em></div></div>
+      <p class="quip">${d.won ? 'History has been rewritten.' : pick(d.endless ? QUIPS.filter(q => !/coin/i.test(q)) : QUIPS)}</p>
+      <div class="stats">${main}<div><b>${d.kills}</b><small>KILLS</small></div><div><b>${d.heads}</b><small>HEADSHOT KILLS</small></div>${d.endless ? '' : `<div><b>${coinIc}${fmt(d.coins)}</b><small>EARNED</small><em>TOTAL ${fmt(d.total)}</em></div>`}</div>
       ${d.next ? `<p class="unlock">🔓 ${d.next} unlocked</p>` : ''}
       ${Platform.ads && d.coins >= 1 ? `<button class="btn gold" data-x2>▶ WATCH AD: +${fmt(d.coins)} COINS</button>` : ''}
       <button class="fight" data-go>${d.won ? 'CONTINUE' : 'UPGRADE & RETRY'}</button>`, e => {
