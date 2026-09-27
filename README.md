@@ -49,7 +49,7 @@ Bütün səslər və musiqi `js/dsp.js`-də koddan yaradılır (səs faylı yoxd
 ## Orijinaldan fərqlər
 | Orijinal | Shoot Unlimited |
 |---|---|
-| 3 upgrade | Hər silahın öz upgrade-ləri (damage, fire rate, magazine, reload; 10 səviyyə) + qəhrəman upgrade-ləri (income, armor, crit, headshot) |
+| 3 upgrade | Hər silahın öz upgrade-ləri (damage, fire rate, magazine, reload, accuracy; 10 səviyyə; accuracy silahın təsadüfi səpələnməsini (spread) daraldır) + qəhrəman upgrade-ləri (income, armor, crit, headshot) |
 | ~7 level, sonra başa qayıdır | 7 era, hərəsinin bossu var + **Endless Time Rift** (hər 5 dalğada era dəyişir) |
 | Upgrade etdikcə düşmən də güclənir | Düşmən gücü sabitdir, yalnız era/dalğadan asılıdır |
 | Bir səhv = ölüm | HP bar, laser sight, auto-kick (melee), bullet time |

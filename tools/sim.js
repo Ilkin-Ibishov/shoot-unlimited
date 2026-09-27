@@ -98,7 +98,8 @@ function harness() {
     const F = WUP.fx, crowd = 1;
     if (w.beam) { const dps = w.dps * F.dmg(L.dmg || 0) * F.rate(L.rate || 0), heat = w.heat * F.mag(L.mag || 0), rel = w.reload * F.reload(L.reload || 0); return dps * heat / (heat + rel) * crowd; }
     const dmg = w.dmg * F.dmg(L.dmg || 0), rate = w.rate * F.rate(L.rate || 0) * BAL.fireRate, mag = Math.max(1, Math.round(w.mag * F.mag(L.mag || 0))), rel = w.reload * F.reload(L.reload || 0);
-    return dmg * w.pellets * mag / (mag / rate + rel) * crowd;
+    const aim = 1 - (w.pellets > 1 ? 1 : 3) * w.spread * F.acc(L.acc || 0); // rough share of hits/headshots kept by the spread
+    return dmg * w.pellets * mag / (mag / rate + rel) * aim * crowd;
   };
   // relative value of one more character level (gun levels are valued by their real power gain)
   const CHAR = { hp: l => 0.5 * 0.15 / (1 + 0.15 * l), income: l => 0.3 * 0.08 / (1 + 0.08 * l), crit: l => 0.8 * 0.02 / (1 + 0.02 * l), head: l => S.pHead * 0.15 / (2 + 0.15 * l) };
@@ -124,11 +125,11 @@ function harness() {
   }
 
   // weapon test: one gun at a fixed level, fixed character levels, R runs of one era -> progress + damage per second
-  globalThis.wtest = (skill, id, era, level, R) => {
+  globalThis.wtest = (skill, id, era, level, R, acc = level) => {
     S = skill; let dmg = 0; const o = [];
     wrap('hurtEnemy', (e, d, x) => { if (!e.dead && (x.src === 'bullet' || x.src === 'beam' || x.src === 'blast')) dmg += Math.min(d, e.hp); });
     for (let i = 0; i < R; i++) {
-      Object.assign(save, { coins: 0, up: { hp: 3 + 2 * era, crit: 1 + era, head: 1 + era }, wup: { [id]: { dmg: level, rate: level, mag: level, reload: level } }, owned: [id], eq: id, unlocked: era + 1 });
+      Object.assign(save, { coins: 0, up: { hp: 3 + 2 * era, crit: 1 + era, head: 1 + era }, wup: { [id]: { dmg: level, rate: level, mag: level, reload: level, acc } }, owned: [id], eq: id, unlocked: era + 1 });
       dmg = 0; const r = playRun(era); o.push({ pct: r.pct, won: r.won, dps: dmg / r.t });
     }
     return o;
@@ -175,14 +176,14 @@ const { Worker, isMainThread, parentPort, workerData } = require('worker_threads
 if (!isMainThread) {
   const g = makeGame(+(A.w || 844), +(A.h || 390));
   if (workerData.noPerks) g.NO_PERKS = true;
-  parentPort.postMessage(workerData.wt ? g.wtest(SKILLS[workerData.sk], workerData.wt.id, workerData.wt.era, workerData.wt.lv, workerData.wt.R) : g.campaign(SKILLS[workerData.sk], workerData.maxRuns));
+  parentPort.postMessage(workerData.wt ? g.wtest(SKILLS[workerData.sk], workerData.wt.id, workerData.wt.era, workerData.wt.lv, workerData.wt.R, workerData.wt.acc) : g.campaign(SKILLS[workerData.sk], workerData.maxRuns));
 } else {
   const n = +(A.n || 4), maxRuns = +(A.maxRuns || 150), skills = A.skill && A.skill !== 'all' ? [A.skill] : Object.keys(SKILLS);
-  if (A.wtest !== undefined) { // node tools/sim.js wtest=<era 1-7> [lv=5] [R=6] [skill=avg]: every gun in that era
+  if (A.wtest !== undefined) { // node tools/sim.js wtest=<era 1-7> [lv=5] [acc=lv] [R=6] [skill=avg]: every gun in that era
     const era = +A.wtest - 1, lvl = +(A.lv ?? 5), R = +(A.R || 6), sk = A.skill && A.skill !== 'all' ? A.skill : 'avg';
     const ids = (A.guns || 'pistol,smg,shotgun,rifle,sniper,rocket,laser').split(',');
     Promise.all(ids.map(id => new Promise((res, rej) => {
-      const w = new Worker(__filename, { argv: process.argv.slice(2), workerData: { sk, wt: { id, era, lv: lvl, R } } });
+      const w = new Worker(__filename, { argv: process.argv.slice(2), workerData: { sk, wt: { id, era, lv: lvl, R, acc: A.acc === undefined ? lvl : +A.acc } } });
       w.once('message', o => res({ id, o })); w.once('error', rej);
     }))).then(all => {
       console.log(`weapon test: era ${era + 1}, gun level ${lvl}, ${R} runs, ${sk} bot`);

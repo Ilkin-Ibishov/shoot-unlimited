@@ -36,7 +36,7 @@ const UI = {
     abil('btnNade', throwNade); abil('btnBT', toggleBT); abil('btnReload', startReload);
     $('ups').onclick = e => {
       const t = e.target.closest('[data-tab]'); if (t) { tap(); this.tab = t.dataset.tab; this.refresh(); return; }
-      const b = e.target.closest('.buy'); if (b && !b.disabled) buyUp((this.tab === 'gun' ? WUP.list : UPGRADES)[+b.dataset.i], this.tab === 'gun');
+      const b = e.target.closest('.buy'); if (b && !b.disabled) buyUp((this.tab === 'gun' ? WUP.list : UPGRADES)[+b.dataset.i], this.tab === 'gun'); // data-i indexes the full list
     };
     this.menu();
     if (save.refund) { // one-time note for saves from before per-gun upgrades
@@ -55,13 +55,13 @@ const UI = {
     $('eraPrev').disabled = G.era === 0; $('eraNext').disabled = G.era === ERAS.length - 1;
     const eb = $('btnEndless'); eb.disabled = save.unlocked < 2;
     eb.innerHTML = save.unlocked < 2 ? '🔒 ENDLESS' : 'ENDLESS' + (save.endless ? `<small>BEST ${save.endless}</small>` : '');
-    // bottom bar: [gun | hero] switch + that side's four upgrades
+    // bottom bar: [gun | hero] switch + that side's upgrades
     const gun = this.tab === 'gun', w = WEAPONS.find(x => x.id === save.eq) || WEAPONS[0];
     $('ups').innerHTML = `<div class="uptabs"><button class="tab${gun ? ' on' : ''}" data-tab="gun">🔫 ${w.name}</button><button class="tab${gun ? '' : ' on'}" data-tab="hero">🧍 Hero</button></div>`
-      + (gun ? WUP.list : UPGRADES).map((u, i) => {
-        const l = gun ? wl(u.id) : lv(u.id), max = l >= u.max, cost = gun ? wupCost(w, u, l) : upCost(u, l);
+      + (gun ? wupList(w) : UPGRADES).map(u => {
+        const i = (gun ? WUP.list : UPGRADES).indexOf(u), l = gun ? wl(u.id) : lv(u.id), max = l >= u.max, cost = gun ? wupCost(w, u, l) : upCost(u, l);
         return `<div class="up"><div class="ic" style="background:${u.color}">${u.icon}</div><div class="bd"><div class="nm">${upName(u, gun && w)}<span class="lv">${l}/${u.max}</span></div>`
-          + `<div class="row2"><span class="eff">${u.show(l)}</span><button class="buy" data-i="${i}"${max || save.coins < cost ? ' disabled' : ''}>${max ? 'MAX' : coinIc + fmt(cost)}</button></div><div class="lb"><i style="width:${l / u.max * 100}%"></i></div></div></div>`;
+          + `<div class="row2"><span class="eff">${u.show(l, w)}</span><button class="buy" data-i="${i}"${max || save.coins < cost ? ' disabled' : ''}>${max ? 'MAX' : coinIc + fmt(cost)}</button></div><div class="lb"><i style="width:${l / u.max * 100}%"></i></div></div></div>`;
       }).join('');
     this.cache = {};
   },
@@ -119,8 +119,8 @@ const UI = {
     const rows = WEAPONS.map(w => {
       const own = save.owned.includes(w.id), eq = save.eq === w.id, locked = save.unlocked <= w.era, c = computeWeapon(w.id), n = wlSum(w.id);
       const stats = (c.beam ? `DPS ${fmt(c.dps)} · HEAT ${+c.heat.toFixed(1)}s · PIERCE ALL`
-        : `DMG ${fmt(c.dmg)}${c.pellets > 1 ? '×' + c.pellets : ''} · ${+c.rate.toFixed(2)}/s · MAG ${c.mag}${c.pierce ? ' · PIERCE ' + c.pierce : ''}${c.explode ? ' · BLAST' : ''}`)
-        + (own ? ` · UPG ${n}/${WUP.list.length * 10}` : '');
+        : `DMG ${fmt(c.dmg)}${c.pellets > 1 ? '×' + c.pellets : ''} · ${+c.rate.toFixed(2)}/s · MAG ${c.mag} · ±${(c.spread * 180 / Math.PI).toFixed(1)}°${c.pierce ? ' · PIERCE ' + c.pierce : ''}${c.explode ? ' · BLAST' : ''}`)
+        + (own ? ` · UPG ${n}/${wupList(w).reduce((a, u) => a + u.max, 0)}` : '');
       const act = eq ? '<button class="btn on" disabled>EQUIPPED</button>'
         : own ? `<button class="btn" data-eq="${w.id}">EQUIP</button>`
         : locked ? `<button class="btn" disabled>🔒 ERA ${w.era + 1}</button>`

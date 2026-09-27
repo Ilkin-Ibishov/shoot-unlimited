@@ -37,25 +37,29 @@ const upCost = (u, l) => Math.round(u.base * Math.pow(u.growth, l));
 // weapon upgrades: every gun levels on its own (L0 -> L10 is ~2.8x sustained dps). Level-l price of stat u on
 // gun w = w.up * u.k * growth^l, so each gun's upgrades cost what the era it belongs to pays.
 const WUP = {
-  fx: { dmg: l => 1 + 0.08 * l, rate: l => 1 + 0.04 * l, mag: l => 1 + 0.1 * l, reload: l => 1 / (1 + 0.05 * l) },
+  fx: { dmg: l => 1 + 0.08 * l, rate: l => 1 + 0.04 * l, mag: l => 1 + 0.1 * l, reload: l => 1 / (1 + 0.05 * l), acc: l => 1 - 0.06 * l },
   list: [
     { id: 'dmg',    name: 'Damage',    icon: '💥', color: '#f07b1d', k: 1,   growth: 1.27, max: 10, show: l => 'x' + WUP.fx.dmg(l).toFixed(2) },
     { id: 'rate',   name: 'Fire Rate', icon: '⏱️', color: '#f2c21b', k: 1,   growth: 1.27, max: 10, show: l => '+' + 4 * l + '%' },
     { id: 'mag',    name: 'Magazine',  icon: '🔋', color: '#9b6bea', k: 0.7, growth: 1.27, max: 10, show: l => '+' + 10 * l + '%' },
     { id: 'reload', name: 'Reload',    icon: '🔄', color: '#1fb5b0', k: 0.7, growth: 1.27, max: 10, show: l => (l ? '-' : '') + Math.round((1 - WUP.fx.reload(l)) * 100) + '%' },
+    // shrinks the random spread (L10 = 40% of the base cone); a beam has no spread, so no accuracy upgrade
+    { id: 'acc',    name: 'Accuracy',  icon: '🎯', color: '#e84a5f', k: 0.7, growth: 1.27, max: 10, show: (l, w) => '±' + (w.spread * WUP.fx.acc(l) * 180 / Math.PI).toFixed(1) + '°', no: w => w.beam },
   ],
   cost: (w, u) => w.up * u.k,
 };
 const wupCost = (w, u, l) => Math.round(WUP.cost(w, u) * Math.pow(u.growth, l));
+const wupList = w => WUP.list.filter(u => !(u.no && u.no(w))); // the upgrades gun w offers
 
-// era = index of the era that must be unlocked before it can be bought
+// era = index of the era that must be unlocked before it can be bought; spread = max random deviation of a shot from
+// the aim line in radians, center-weighted (for pellet guns: the width of the fan); the Accuracy upgrade shrinks it
 const WEAPONS = [
-  { id: 'pistol',  name: 'Pistol',          desc: 'Reliable. Boring. Yours.',             dmg: 10, rate: 3,   mag: 6,  reload: 1.1, spread: 0.012, pellets: 1, speed: 1800, pierce: 0, knock: 220, price: 0,     era: 0, tier: 1, up: 3, len: 20, w: 5,  color: '#2b2f3a', sfx: 'pistol',  shake: 2 },
-  { id: 'smg',     name: 'SMG',             desc: 'Spray and pray.',                      dmg: 6,  rate: 10,  mag: 30, reload: 1.6, spread: 0.05,  pellets: 1, speed: 1900, pierce: 0, knock: 120, price: 900,   era: 0, tier: 2, up: 12, len: 30, w: 6,  color: '#3a3f4b', sfx: 'smg',     shake: 1.5 },
+  { id: 'pistol',  name: 'Pistol',          desc: 'Reliable. Boring. Yours.',             dmg: 10, rate: 3,   mag: 6,  reload: 1.1, spread: 0.09,  pellets: 1, speed: 1800, pierce: 0, knock: 220, price: 0,     era: 0, tier: 1, up: 3, len: 20, w: 5,  color: '#2b2f3a', sfx: 'pistol',  shake: 2 },
+  { id: 'smg',     name: 'SMG',             desc: 'Spray and pray.',                      dmg: 6,  rate: 10,  mag: 30, reload: 1.6, spread: 0.14,  pellets: 1, speed: 1900, pierce: 0, knock: 120, price: 900,   era: 0, tier: 2, up: 12, len: 30, w: 6,  color: '#3a3f4b', sfx: 'smg',     shake: 1.5 },
   { id: 'shotgun', name: 'Shotgun',         desc: '7 pellets, huge knockback.',           dmg: 14, rate: 1.2, mag: 5,  reload: 2.0, spread: 0.2,   pellets: 7, speed: 1700, pierce: 0, knock: 500, price: 1600,  era: 1, tier: 4, up: 60, len: 42, w: 6,  color: '#5a3b22', sfx: 'shotgun', shake: 6 },
-  { id: 'rifle',   name: 'Assault Rifle',   desc: 'Fast, accurate, dependable.',          dmg: 30, rate: 8,   mag: 25, reload: 1.8, spread: 0.022, pellets: 1, speed: 2200, pierce: 0, knock: 200, price: 4000,  era: 2, tier: 8, up: 100, len: 44, w: 6,  color: '#2f3b2a', sfx: 'rifle',   shake: 2.5 },
-  { id: 'sniper',  name: 'Sniper',          desc: 'Pierces 3 enemies. One shot, one ragdoll.', dmg: 380, rate: 1.3, mag: 6, reload: 2.0, spread: 0, pellets: 1, speed: 3600, pierce: 3, knock: 650, price: 6500,  era: 3, tier: 16, up: 150, len: 60, w: 5,  color: '#1f2530', sfx: 'sniper',  shake: 7 },
-  { id: 'rocket',  name: 'Rocket Launcher', desc: 'Explodes. Obviously.',                 dmg: 1300, rate: 0.8, mag: 3,  reload: 2.2, spread: 0.01,  pellets: 1, speed: 900,  pierce: 0, knock: 0, explode: 140, price: 10000, era: 4, tier: 30, up: 260, len: 54, w: 11, color: '#4c5a2e', sfx: 'rocket', shake: 8 },
+  { id: 'rifle',   name: 'Assault Rifle',   desc: 'Fast, accurate, dependable.',          dmg: 30, rate: 8,   mag: 25, reload: 1.8, spread: 0.08,  pellets: 1, speed: 2200, pierce: 0, knock: 200, price: 4000,  era: 2, tier: 8, up: 100, len: 44, w: 6,  color: '#2f3b2a', sfx: 'rifle',   shake: 2.5 },
+  { id: 'sniper',  name: 'Sniper',          desc: 'Pierces 3 enemies. One shot, one ragdoll.', dmg: 380, rate: 1.3, mag: 6, reload: 2.0, spread: 0.04, pellets: 1, speed: 3600, pierce: 3, knock: 650, price: 6500,  era: 3, tier: 16, up: 150, len: 60, w: 5,  color: '#1f2530', sfx: 'sniper',  shake: 7 },
+  { id: 'rocket',  name: 'Rocket Launcher', desc: 'Explodes. Obviously.',                 dmg: 1300, rate: 0.8, mag: 3,  reload: 2.2, spread: 0.05,  pellets: 1, speed: 900,  pierce: 0, knock: 0, explode: 140, price: 10000, era: 4, tier: 30, up: 260, len: 54, w: 11, color: '#4c5a2e', sfx: 'rocket', shake: 8 },
   { id: 'laser',   name: 'Laser Beam',      desc: 'Continuous beam, pierces all. Overheats.', dps: 490, heat: 3.2, reload: 1.6, rate: 1, mag: 1, beam: true, spread: 0, pellets: 1, speed: 0, pierce: 99, knock: 40, price: 13000, era: 5, tier: 60, up: 450, len: 45, w: 8, color: '#1b2a3a', sfx: 'laser', shake: 0 },
 ];
 

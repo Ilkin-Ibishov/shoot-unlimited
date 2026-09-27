@@ -86,6 +86,7 @@ function computeWeapon(id = save.eq) {
     mag: Math.max(1, Math.round(d.mag * WUP.fx.mag(L('mag')) * big)),
     heat: (d.heat || 0) * WUP.fx.mag(L('mag')) * big,
     reload: d.reload * WUP.fx.reload(L('reload')) / (1 + 0.35 * (P.quick || 0)),
+    spread: d.spread * WUP.fx.acc(L('acc')),
     melee: d.tier * WUP.fx.dmg(L('dmg')), // kick + grenade scale with the gun's tier
     crit: UP.crit(lv('crit')), head: UP.head(lv('head')) * (1 + 0.25 * (P.hunter || 0)) };
 }
@@ -313,7 +314,7 @@ function fire() {
   const n = w.pellets + (P.twin || 0);
   for (let i = 0; i < n; i++) {
     const fan = n > 1 ? (i / (n - 1) - 0.5) * (w.pellets > 1 ? w.spread * 2 : 0.07 * n) : 0;
-    const a = p.aim + fan + (Math.random() - 0.5) * (w.pellets > 1 ? w.spread * 0.5 : w.spread);
+    const a = p.aim + fan + (w.pellets > 1 ? (Math.random() - 0.5) * w.spread * 0.5 : (Math.random() + Math.random() - 1) * w.spread); // single shots: center-weighted, up to ±spread
     bullets.push({ x: mx, y: my, px: mx, py: my, vx: Math.cos(a) * w.speed, vy: Math.sin(a) * w.speed,
       dmg: w.dmg * (P.twin && w.pellets === 1 ? 0.6 : 1), pierce: w.pierce + (P.pierce || 0), bounce: P.ricochet || 0,
       hit: [], rd: [], life: 1.6, rocket: !!w.explode });

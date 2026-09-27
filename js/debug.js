@@ -51,7 +51,7 @@ if (DEBUG) (() => {
   }
   function killAll() { for (const e of enemies) if (!e.dead && !e.idle) killEnemy(e, { src: 'debug', dx: 1, dy: -0.4, x: e.x, y: e.y - 50 }, false, 0); }
   function setUps(what) { // 'gun' (equipped) | 'guns' | 'hero' | 'reset'
-    const maxGun = id => { save.wup[id] = Object.fromEntries(WUP.list.map(u => [u.id, u.max])); };
+    const maxGun = id => { save.wup[id] = Object.fromEntries(wupList(WEAPONS.find(w => w.id === id)).map(u => [u.id, u.max])); };
     if (what === 'gun') maxGun(save.eq); else if (what === 'guns') WEAPONS.forEach(w => maxGun(w.id));
     else if (what === 'hero') save.up = Object.fromEntries(UPGRADES.map(u => [u.id, u.max]));
     else { save.up = {}; save.wup = {}; }
