@@ -103,6 +103,7 @@
    - Hədəf: ödəyən oyunçu ~30–40% tez bitirir, 3 dəfə tez yox.
 
 ## 2. Real telefonda sınaq
+- [x] 2026-09-28: istifadəçi real telefonda yoxladı, göndərişə mane olan problem tapılmadı.
 - Orta və zəif Android-də FPS, toxunuşla nişan almanın rahatlığı, düymələrin ölçüsü.
 - Ekran kəsiyi (notch) və jest paneli düymələri örtməsin (`env(safe-area-inset-*)`).
 
