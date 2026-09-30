@@ -22,7 +22,7 @@
 
 ### 0.2 CrazyGames: qalan əl işləri
 - [ ] developer.crazygames.com-da hesab aç və Basic Launch üçün göndər.
-- [x] Yükləmə üçün zip: `git archive -o shoot-unlimited.zip HEAD index.html manifest.webmanifest icon.svg js`. Yoxlanıldı: oyunun işləməsi üçün başqa fayl lazım deyil (`sw.js` CrazyGames-də onsuz da qeydiyyatdan keçmir, çünki `Platform.sdk` dolu olur). Tək xarici sorğu Google Fonts-dur (Russo One); şrift yüklənməsə `Arial Black`-a düşür. QA xarici sorğuya irad tutsa, `index.html`-dən `<link>`-i silmək və ya şrifti base64 woff2 kimi içəri salmaq lazımdır.
+- [x] Yükləmə üçün zip: `git archive -o shoot-unlimited.zip HEAD index.html manifest.webmanifest icon.svg js fonts`. Yoxlanıldı: oyunun işləməsi üçün başqa fayl lazım deyil (`sw.js` CrazyGames-də onsuz da qeydiyyatdan keçmir, çünki `Platform.sdk` dolu olur). Xarici sorğu yoxdur: Russo One (latin, 7 KB, OFL) `fonts/`-da saxlanır (GDPR: oyunçunun IP-si Google-a getmir; offline PWA və Android-də də eyni şrift).
 - [x] Kapak şəkilləri: `tools/out/cover-*.png` (gitignored). 1920×1080: jurassic (T-Rex boss), city (zombi dalğası + baş qopması), neon (lazer şüası), west (raket partlayışı), perks (perk seçimi). 800×1200: jurassic, city. 800×800: jurassic, city. Mətn və loqo şəklin üstünə sonra qoyulur.
 - [x] İngiliscə mağaza mətni (description + controls + kateqoriya/teqlər): `tools/out/crazygames-submission.md`.
 - [ ] QA qan və ya baş qopmasını PEGI 12 üçün çox görsə: `blood` ayarının susmaya görə dəyərini `false` et (`readSave` içində).

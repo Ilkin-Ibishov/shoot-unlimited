@@ -12,10 +12,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/russo-one.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+@font-face { font-family: 'Russo One'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/russo-one.woff2) format('woff2'); } /* OFL, fonts/OFL.txt */
 :root { --bg: #10141f; --panel: #1b2233; --card: #262f47; --line: #0c0f18; --yellow: #ffd21f; --green: #34c759; --red: #ff4d4d; --blue: #39e1ff;
   --font: 'Russo One', 'Arial Black', system-ui, sans-serif; --u: min(1vh, 1vw); }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
