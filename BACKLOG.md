@@ -21,7 +21,7 @@
 - CrazyGames-də özümüzün fullscreen funksiyası və service worker söndürülür.
 
 ### 0.2 CrazyGames: qalan əl işləri
-- [ ] developer.crazygames.com-da hesab aç və Basic Launch üçün göndər.
+- [x] developer.crazygames.com-da Basic Launch üçün göndərildi (2026-09-30, status AWAITING REVIEW). Nəticəni gözlə; QA qeydləri gələndə düzəlişləri `Submit new version` ilə göndər.
 - [x] Yükləmə: portal zip qəbul etmir ("Archive files are not supported"), faylları birbaşa upload zonasına sürükləmək lazımdır. Qovluğu hazırla: `mkdir tools/out/upload && git archive HEAD index.html manifest.webmanifest icon.svg js fonts | tar -x -C tools/out/upload`, sonra qovluğun **içindəkiləri** seçib sürüklə (qovluğun özünü yox, yoxsa `index.html` kökdə olmaz). 2026-09-30-da 15 fayl yükləndi və yoxlandı. Yoxlanıldı: oyunun işləməsi üçün başqa fayl lazım deyil (`sw.js` CrazyGames-də onsuz da qeydiyyatdan keçmir, çünki `Platform.sdk` dolu olur). Xarici sorğu yoxdur: Russo One (latin, 7 KB, OFL) `fonts/`-da saxlanır (GDPR: oyunçunun IP-si Google-a getmir; offline PWA və Android-də də eyni şrift).
 - [x] Kapak şəkilləri: `tools/out/cover-*.png` (gitignored). 1920×1080: jurassic (T-Rex boss), city (zombi dalğası + baş qopması), neon (lazer şüası), west (raket partlayışı), perks (perk seçimi). 800×1200: jurassic, city. 800×800: jurassic, city. Mətn və loqo şəklin üstünə sonra qoyulur.
 - [x] İngiliscə mağaza mətni (description + controls + kateqoriya/teqlər): `tools/out/crazygames-submission.md`.
@@ -31,7 +31,7 @@
 - [x] Kapaklar adla hazırdır: `tools/out/final-cover-16x9.png`, `-2x3.png`, `-1x1.png` (Jurassic səhnə, damage rəqəmi və can çubuğu olmadan, yalnız "SHOOT UNLIMITED" başlığı). Videolar (`video-*.mp4`, 18 s, ~7,6 MB) kapaqla başlayır, sonra Jurassic → City → Dark Ages → Egypt → West → Pirate → Neon. Bitrate 3 Mbps seçilib, çünki Claude-in-Chrome `file_upload` bir çağırışda 10 MB-dan çox qəbul etmir.
 - [x] Faylları Details formuna yükləmək: portal `UploadType is not properly set` xətası verir, əgər input birbaşa doldurularsa. Həll: əvvəl sarğı div-ə (kapaq) və ya "Upload" düyməsinə (video) JS `.click()` (jestsiz, fayl dialoqu açılmır), sonra `file_upload`. Videolar yükləndi. Kapaqlar yükləndi, amma portal hər biri üçün **crop pəncərəsi** açır.
 - [x] Kapaq crop pəncərələri təsdiqləndi (Cropper.js: 1:1 kəsimi konteyner eninə görə 770×770 idi, `setCanvasData/setCropBoxData` ilə tam 800×800 edildi; 16:9 və 2:3 tam ölçüdə idi). 3 kapaq və 2 video `graph.crazygames.com/upload`-a yükləndi. "Save and continue to last step" ilə Details saxlandı (Chrome gizli tabda `ref` klik işləməyəndə düyməyə JS `.click()` işlədi).
-- [ ] 4-cü addım "Finalize submission": iki bəyan (Developer Portal T&C; oyunun 12+ üçün uyğun olduğu, PEGI 12 meyarları) və **Submit for approval**. Bəyanlar istifadəçi adınadır, ona görə əl ilə təsdiq edilir.
+- [x] 4-cü addım: T&C və PEGI 12 bəyanları təsdiqləndi, "Submit for approval" basıldı (istifadəçi özü).
 - [ ] QA qan və ya baş qopmasını PEGI 12 üçün çox görsə: `blood` ayarının susmaya görə dəyərini `false` et (`readSave` içində).
 - [ ] Basic Launch datasına bax: orta oynama vaxtı və D1. Sonra `BAL`-ı tənzimlə (bənd 3).
 
