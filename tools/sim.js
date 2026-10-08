@@ -1,7 +1,8 @@
 // Balance simulator: runs the REAL game code headless (canvas/DOM stubbed) with a bot that
 // aims like a human (reaction delay, limited swipe speed, drifting aim error), then plays
 // whole campaigns: run -> spend coins -> run ... until all eras are cleared.
-// Usage: node tools/sim.js [skill=casual|avg|pro|all] [n=4] [maxRuns=150] [w=844] [h=390] [perks=off]
+// Usage: node tools/sim.js [skill=casual|avg|pro|all] [n=4] [maxRuns=150] [w=844] [h=390] [perks=off] [set=BALkey:val,...]
+//        node tools/sim.js cold=<era> [R=30]   first attempts of a fresh save (cold-player check)
 'use strict';
 const fs = require('fs'), vm = require('vm'), path = require('path');
 const A = Object.fromEntries(process.argv.slice(2).map(a => a.split('=')));
@@ -14,6 +15,7 @@ const SKILLS = {
   pro:    { react: 0.18, omega: 6,   sigma: 0.025, pHead: 0.7,  lead: 1,   nade: 3, bt: 4, perk: 'smart', perc: 0.15 },
 };
 
+const OVR = A.set ? Object.fromEntries(A.set.split(',').map(kv => kv.split(':')).map(([k, v]) => [k, +v])) : null; // BAL overrides: set=bulletDmg:0.6,waveDmg:0.08
 function makeGame(w, h) {
   const grad = { addColorStop() {} }, noop = () => grad;
   const ctx2d = () => new Proxy({}, { get: (t, k) => (k in t ? t[k] : noop), set: (t, k, v) => { t[k] = v; return true; } });
@@ -23,7 +25,7 @@ function makeGame(w, h) {
     console, document: { getElementById: el, createElement: el, addEventListener() {}, hidden: false },
     innerWidth: w, innerHeight: h, devicePixelRatio: 2, addEventListener() {}, matchMedia: () => ({ matches: false }),
     localStorage: { getItem: k => store[k] ?? null, setItem: (k, v) => { store[k] = v; }, removeItem: k => { delete store[k]; } },
-    location: { search: '', protocol: 'file:' }, navigator: {}, requestAnimationFrame() {},
+    location: { search: '', protocol: 'file:' }, navigator: {}, requestAnimationFrame() {}, OVR,
   });
   vm.runInContext('var window = globalThis;', g);
   for (const f of ['data.js', 'engine.js', 'audio.js', 'platform.js', 'game.js', 'render.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'), g, { filename: f });
@@ -34,6 +36,7 @@ function makeGame(w, h) {
 // ---- everything below runs inside the game's context ----
 function harness() {
   resize();
+  if (globalThis.OVR) Object.assign(BAL, globalThis.OVR); // set=key:val,... from the command line
   const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * v); };
   const PERK_ORDER = ['hunter', 'twin', 'pierce', 'explosive', 'chain', 'rage', 'fire', 'quick', 'bigmag', 'medkit', 'homing', 'vamp', 'frost', 'ricochet', 'focus', 'greed'];
   let S = null, st = null, last = null;
@@ -83,6 +86,8 @@ function harness() {
       step(DT);
       ragdolls.length = 0; parts.length = 0; texts.length = 0; coinFx.length = 0; // cosmetic only
       if (!player.dead) st.minHp = Math.min(st.minHp, player.hp / player.maxHp);
+      if (f === 3600) st.hp60 = Math.max(0, player.hp / player.maxHp); // HP share at 60 s / 90 s (cold-player check)
+      if (f === 5400) st.hp90 = Math.max(0, player.hp / player.maxHp);
       f++;
     }
     const timeout = G.state === 'play';
@@ -134,6 +139,15 @@ function harness() {
     }
     return o;
   };
+  // cold player: brand-new save (no upgrades, pistol), R first attempts at one era
+  globalThis.cold = (skill, era, R) => {
+    S = skill; const o = [];
+    for (let i = 0; i < R; i++) {
+      Object.assign(save, { coins: 0, up: {}, wup: {}, owned: ['pistol'], eq: 'pistol', unlocked: era + 1, best: [], endless: 0 });
+      o.push(playRun(era));
+    }
+    return o;
+  };
   globalThis.campaign = (skill, maxRuns) => {
     S = skill;
     Object.assign(save, { coins: 0, up: {}, wup: {}, owned: ['pistol'], eq: 'pistol', unlocked: 1, best: [], endless: 0 });
@@ -176,9 +190,25 @@ const { Worker, isMainThread, parentPort, workerData } = require('worker_threads
 if (!isMainThread) {
   const g = makeGame(+(A.w || 844), +(A.h || 390));
   if (workerData.noPerks) g.NO_PERKS = true;
-  parentPort.postMessage(workerData.wt ? g.wtest(SKILLS[workerData.sk], workerData.wt.id, workerData.wt.era, workerData.wt.lv, workerData.wt.R, workerData.wt.acc) : g.campaign(SKILLS[workerData.sk], workerData.maxRuns));
+  parentPort.postMessage(workerData.cold ? g.cold(SKILLS[workerData.sk], workerData.cold.era, workerData.cold.R) : workerData.wt ? g.wtest(SKILLS[workerData.sk], workerData.wt.id, workerData.wt.era, workerData.wt.lv, workerData.wt.R, workerData.wt.acc) : g.campaign(SKILLS[workerData.sk], workerData.maxRuns));
 } else {
   const n = +(A.n || 4), maxRuns = +(A.maxRuns || 150), skills = A.skill && A.skill !== 'all' ? [A.skill] : Object.keys(SKILLS);
+  if (A.cold !== undefined) { // node tools/sim.js cold=<era 1-7> [R=30]: first attempts of a fresh save, per skill
+    const era = +A.cold - 1, R = +(A.R || 30);
+    Promise.all(Object.keys(SKILLS).map(sk => new Promise((res, rej) => {
+      const w = new Worker(__filename, { argv: process.argv.slice(2), workerData: { sk, cold: { era, R } } });
+      w.once('message', o => res({ sk, o })); w.once('error', rej);
+    }))).then(all => {
+      console.log(`cold player, era ${era + 1}, ${R} fresh-save runs per skill (pistol, no upgrades)`);
+      console.log('skill  | win | avg % | median s | HP@60s | HP@90s | minHP | died by wave (1..10)');
+      for (const { sk, o } of all) {
+        const avg = f => o.reduce((a, r) => a + f(r), 0) / o.length, med = o.map(r => r.t).sort((a, b) => a - b)[o.length >> 1];
+        const hist = Array(10).fill(0); for (const r of o) if (!r.won) hist[Math.min(9, Math.floor(r.pct / 10))]++;
+        console.log(`${sk.padEnd(6)} | ${pc(o.filter(r => r.won).length / o.length).padStart(3)} | ${avg(r => r.pct).toFixed(0).padStart(5)} | ${med.toFixed(0).padStart(8)} | ${pc(avg(r => r.hp60 ?? 0)).padStart(6)} | ${pc(avg(r => r.hp90 ?? 0)).padStart(6)} | ${pc(avg(r => r.minHp)).padStart(5)} | ${hist.join(' ')}`);
+      }
+    });
+    return;
+  }
   if (A.wtest !== undefined) { // node tools/sim.js wtest=<era 1-7> [lv=5] [acc=lv] [R=6] [skill=avg]: every gun in that era
     const era = +A.wtest - 1, lvl = +(A.lv ?? 5), R = +(A.R || 6), sk = A.skill && A.skill !== 'all' ? A.skill : 'avg';
     const ids = (A.guns || 'pistol,smg,shotgun,rifle,sniper,rocket,laser').split(',');
