@@ -791,6 +791,7 @@ const pointerUp = e => {
 };
 cvs.addEventListener('pointerup', pointerUp); cvs.addEventListener('pointercancel', pointerUp);
 cvs.addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('pointerdown', () => focus(), true); // inside an iframe keys only arrive once the frame has focus
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (k === ' ') e.preventDefault();
@@ -817,5 +818,5 @@ async function boot() {
   setupWorld(G.era); spawnDummies(); wep = computeWeapon();
   UI.init();
   requestAnimationFrame(t => { last = t; frame(t); });
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !Platform.sdk) navigator.serviceWorker.register('sw.js').catch(() => { });
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !Platform.sdk && top === self) navigator.serviceWorker.register('sw.js').catch(() => { });
 }
