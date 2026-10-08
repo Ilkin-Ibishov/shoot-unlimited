@@ -15,7 +15,7 @@ const BAL = {
   fireRate: 0.5,                                      // global multiplier on every weapon's fire rate (laser is continuous, unaffected)
   retreat: 32,                                        // player backpedal speed during a wave (units/s)
   perkEvery: 3,                                       // perk pick after every N waves
-  bulletDmg: 0.7,                                     // global multiplier on every weapon's damage (and laser dps)
+  bulletDmg: 0.55,                                    // global multiplier on every weapon's damage (and laser dps)
   waveCoin: 2, eraCoin: 60, comboCoin: 0.03, comboMax: 10,
 };
 
