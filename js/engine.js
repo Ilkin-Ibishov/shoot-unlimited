@@ -725,6 +725,46 @@ function poseRaptor(o, x, y, s, f, t, act, moving) {
   limb(o, 6, 7, hx, hy, sw * 0.6 + 0.1, sw * 0.6 - 0.5 - Math.max(0, Math.sin(t + 1.6)) * 0.8, L, f);
   limb(o, 8, 9, hx, hy, -sw * 0.6 + 0.1, -sw * 0.6 - 0.5 - Math.max(0, -Math.sin(t + 1.6)) * 0.8, L, f);
 }
+// authentic Boston Dynamics Spot robot dog pose: athletic standing clearance, diagonal trotting kinematics
+function poseRobotDog(o, x, y, s, f, t, act = 0, moving = true) {
+  const standH = 36 * s, upperLen = 22 * s, lowerLen = 25 * s;
+  const bounce = moving ? Math.abs(Math.sin(t * 6.5)) * 2.2 * s : 0;
+  const lungeX = act > 0 ? Math.sin(act * Math.PI) * 16 * s : 0;
+  const lungeY = act > 0 ? Math.sin(act * Math.PI) * 8 * s : 0;
+  const cy = y - standH + bounce + lungeY, cx = x + lungeX;
+  const frontHipX = cx + f * 19 * s, rearHipX = cx - f * 19 * s, hipY = cy + 2 * s;
+  const gs = 6.5, ga = moving ? 0.7 : 0;
+
+  // Rear legs: near (phase 0), far (phase PI)
+  const rearSwNear = Math.sin(t * gs) * ga;
+  const rearLiftNear = Math.max(0, Math.sin(t * gs)) * 9 * s * (moving ? 1 : 0);
+  const uAngNear = -0.55 + rearSwNear * 0.40;
+  const kxNear = rearHipX + f * Math.sin(uAngNear) * upperLen;
+  const kyNear = hipY + Math.cos(uAngNear) * upperLen;
+  const lAngNear = 0.42 - rearSwNear * 0.35;
+  const fxNear = kxNear + f * Math.sin(lAngNear) * lowerLen;
+  const fyNear = Math.min(kyNear + Math.cos(lAngNear) * lowerLen - rearLiftNear, y);
+
+  const rearSwFar = Math.sin(t * gs + Math.PI) * ga;
+  const rearLiftFar = Math.max(0, Math.sin(t * gs + Math.PI)) * 9 * s * (moving ? 1 : 0);
+  const uAngFar = -0.55 + rearSwFar * 0.40;
+  const kxFar = rearHipX + f * Math.sin(uAngFar) * upperLen;
+  const kyFar = hipY + Math.cos(uAngFar) * upperLen;
+  const lAngFar = 0.42 - rearSwFar * 0.35;
+  const fxFar = kxFar + f * Math.sin(lAngFar) * lowerLen;
+  const fyFar = Math.min(kyFar + Math.cos(lAngFar) * lowerLen - rearLiftFar, y);
+
+  P(o, 0, cx + f * 27 * s, cy - 1 * s);
+  P(o, 1, cx + f * 24 * s, cy - 6 * s);
+  P(o, 2, frontHipX, hipY);
+  P(o, 3, rearHipX, hipY);
+  P(o, 4, cx - f * 24 * s, cy - 6 * s);
+  P(o, 5, cx - f * 27 * s, cy + 1 * s);
+  P(o, 6, kxNear, kyNear);
+  P(o, 7, fxNear, fyNear);
+  P(o, 8, kxFar, kyFar);
+  P(o, 9, fxFar, fyFar);
+}
 // Flyers share one rig (0 head, 1 body, 2 back wing tip, 3 front wing tip, 4 tail) so hits and ragdolls work the
 // same; each era's kind has its own flight style and silhouette. lift raises the wings into a soaring V.
 const FLY = {
@@ -1103,6 +1143,193 @@ function dinoHead(c, K, flash, rich, jaw, C, lw) {
   c.strokeStyle = C.line; c.lineWidth = 1.3; c.beginPath(); c.moveTo(-3.8, -3.4); c.quadraticCurveTo(-0.6, -4.7, 2.6, -3.5); c.stroke(); // brow ridge
   if (rich) { c.strokeStyle = rgba(C.line, 0.55); c.lineWidth = 0.5; c.beginPath(); c.moveTo(-5.4, 0.6); c.quadraticCurveTo(-4.2, 2.2, -2.2, 2.6); c.moveTo(-4.8, -0.6); c.quadraticCurveTo(-3.8, 1, -1.8, 1.4); c.stroke(); } // jaw-muscle creases
 }
+// Boston Dynamics Spot robot dog renderer: sleek streamlined chassis, integrated camera nose, carbon S-curved legs
+function drawRobotDog(c, p, look, s, f, flash, cut, headAng, opt = {}, lod = false) {
+  const primary = flash ? '#fff' : (look.s || '#768396');
+  const light = flash ? '#fff' : shade(primary, 1.25);
+  const dark = flash ? '#fff' : shade(primary, 0.72);
+  const under = flash ? '#fff' : (look.p || '#151720');
+  const legBlack = flash ? '#fff' : '#12141a';
+  const joint = flash ? '#fff' : shade(under, 1.8);
+  const glow = flash ? '#fff' : '#39e1ff';
+  const bodyLen = 54 * s, bodyH = 13.5 * s, upperLen = 22 * s, lowerLen = 25 * s;
+
+  const fX = p[2] ? p[2][0] : 0, fY = p[2] ? p[2][1] : 0;
+  const rX = p[3] ? p[3][0] : 0, rY = p[3] ? p[3][1] : 0;
+  const cx = (fX + rX) * 0.5, cy = (fY + rY) * 0.5;
+  const ang = Math.atan2(fY - rY, (fX - rX) * f);
+
+  c.save();
+  c.translate(cx, cy);
+  c.scale(f, 1);
+  c.rotate(ang);
+
+  const hw = bodyLen * 0.5, hh = bodyH * 0.5;
+  const frontHipX = bodyLen * 0.35, rearHipX = -bodyLen * 0.35, hipY = 2 * s;
+
+  const dead = lod || cut >= 0;
+  const t = opt.t ?? (typeof G !== 'undefined' ? G.time : 0);
+  const gs = 6.5, ga = (!dead && opt.walking !== false) ? 0.7 : 0;
+
+  function calcFrontLeg(phase) {
+    if (dead) {
+      const kx = frontHipX + 6 * s, ky = hipY + upperLen * 0.85;
+      const fx = kx - 4 * s, fy = ky + lowerLen * 0.85;
+      return { kx, ky, fx, fy };
+    }
+    const sw = Math.sin(t * gs + phase) * ga;
+    const lift = Math.max(0, Math.sin(t * gs + phase)) * 9 * s * (ga > 0 ? 1 : 0);
+    const upperAng = 0.52 + sw * 0.40;
+    const kx = frontHipX + Math.sin(upperAng) * upperLen;
+    const ky = hipY + Math.cos(upperAng) * upperLen;
+    const lowerAng = -0.45 - sw * 0.35;
+    const fx = kx + Math.sin(lowerAng) * lowerLen;
+    const fy = ky + Math.cos(lowerAng) * lowerLen - lift;
+    return { kx, ky, fx, fy };
+  }
+
+  function toLocal(pt) {
+    if (!pt) return [0, 0];
+    const dx = pt[0] - cx, dy = pt[1] - cy;
+    const cos = Math.cos(-ang), sin = Math.sin(-ang);
+    const rx = dx * cos - dy * sin, ry = dx * sin + dy * cos;
+    return [rx * f, ry];
+  }
+
+  const rNearKnee = p[6] ? toLocal(p[6]) : [rearHipX - 10 * s, hipY + 18 * s];
+  const rNearFoot = p[7] ? toLocal(p[7]) : [rearHipX - 2 * s, hipY + 36 * s];
+  const rFarKnee  = p[8] ? toLocal(p[8]) : [rearHipX - 10 * s, hipY + 18 * s];
+  const rFarFoot  = p[9] ? toLocal(p[9]) : [rearHipX - 2 * s, hipY + 36 * s];
+
+  const legFarFront  = calcFrontLeg(0);
+  const legNearFront = calcFrontLeg(Math.PI);
+  const legFarRear   = { kx: rFarKnee[0], ky: rFarKnee[1], fx: rFarFoot[0], fy: rFarFoot[1] };
+  const legNearRear  = { kx: rNearKnee[0], ky: rNearKnee[1], fx: rNearFoot[0], fy: rNearFoot[1] };
+
+  function drawOneLeg(L, hx, hy, isFront, back) {
+    const uCol = back ? dark : primary;
+    const dCol = back ? '#0e1016' : legBlack;
+    const jCol = back ? '#1c1f28' : joint;
+    const uW = 3.8 * s * (back ? 0.88 : 1.0);
+    const dW = 2.1 * s * (back ? 0.88 : 1.0);
+
+    c.beginPath();
+    c.moveTo(L.kx, L.ky);
+    const midX = (L.kx + L.fx) * 0.5 + (isFront ? 2.2 * s : -2.2 * s);
+    const midY = (L.ky + L.fy) * 0.5;
+    c.quadraticCurveTo(midX, midY, L.fx, L.fy);
+    c.strokeStyle = INK; c.lineWidth = dW * 2 + 2; c.lineCap = 'round'; c.stroke();
+    c.strokeStyle = dCol; c.lineWidth = dW * 2; c.stroke();
+
+    c.beginPath(); c.arc(L.fx, L.fy - 1.2 * s, 3.4 * s * (back ? 0.88 : 1), 0, TAU);
+    c.fillStyle = dCol; c.fill(); c.strokeStyle = INK; c.lineWidth = 1.4; c.stroke();
+
+    c.beginPath(); c.arc(L.kx, L.ky, 3.4 * s * (back ? 0.88 : 1), 0, TAU);
+    c.fillStyle = jCol; c.fill(); c.strokeStyle = INK; c.lineWidth = 1.4; c.stroke();
+
+    c.beginPath(); c.moveTo(hx, hy); c.lineTo(L.kx, L.ky);
+    c.strokeStyle = INK; c.lineWidth = uW * 2 + 2.5; c.lineCap = 'round'; c.stroke();
+    c.strokeStyle = uCol; c.lineWidth = uW * 2; c.stroke();
+
+    if (!back && !lod) {
+      c.strokeStyle = light; c.lineWidth = uW * 0.75;
+      c.beginPath(); c.moveTo(hx + (isFront ? 1 : -1) * 0.8 * s, hy + 2 * s);
+      c.lineTo(L.kx + (isFront ? 1 : -1) * 0.8 * s, L.ky - 2 * s); c.stroke();
+      c.strokeStyle = '#12141a'; c.lineWidth = 1.2 * s;
+      c.beginPath(); c.moveTo(hx - 3.5 * s, hy - 4 * s);
+      c.quadraticCurveTo(hx, hy - 8.5 * s, hx + 3.5 * s, hy - 3.5 * s); c.stroke();
+    }
+  }
+
+  drawOneLeg(legFarRear, rearHipX, hipY, false, true);
+  drawOneLeg(legFarFront, frontHipX, hipY, true, true);
+
+  c.beginPath();
+  c.roundRect ? c.roundRect(-hw + 3 * s, -hh + 3 * s, bodyLen - 6 * s, bodyH - 2 * s, 3 * s)
+               : c.rect(-hw + 3 * s, -hh + 3 * s, bodyLen - 6 * s, bodyH - 2 * s);
+  c.fillStyle = under; c.fill();
+
+  c.beginPath();
+  c.moveTo(-hw + 7 * s, -hh);
+  c.lineTo(hw - 5 * s, -hh);
+  c.lineTo(hw + 2 * s, -hh + 3.5 * s);
+  c.lineTo(hw + 2 * s, hh - 3.5 * s);
+  c.lineTo(hw - 5 * s, hh);
+  c.lineTo(-hw + 5 * s, hh);
+  c.lineTo(-hw - 1.5 * s, hh - 3.5 * s);
+  c.lineTo(-hw - 1.5 * s, -hh + 4 * s);
+  c.closePath();
+  c.fillStyle = primary; c.strokeStyle = INK; c.lineWidth = 2.4; c.fill(); c.stroke();
+
+  if (!flash) {
+    c.fillStyle = light;
+    c.beginPath();
+    c.moveTo(-hw + 7 * s, -hh + 1 * s);
+    c.lineTo(hw - 5 * s, -hh + 1 * s);
+    c.lineTo(hw - 6 * s, -hh + 3.4 * s);
+    c.lineTo(-hw + 6 * s, -hh + 3.4 * s);
+    c.closePath();
+    c.fill();
+
+    c.fillStyle = under;
+    c.beginPath();
+    c.moveTo(-hw + 11 * s, -hh * 0.12);
+    c.lineTo(hw - 9 * s, -hh * 0.12);
+    c.lineTo(hw - 11 * s, hh * 0.48);
+    c.lineTo(-hw + 9 * s, hh * 0.48);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = INK; c.lineWidth = 1.2; c.stroke();
+
+    c.fillStyle = '#12141a';
+    for (let i = 0; i < 4; i++) c.fillRect(-hw + 14 * s + i * 4.5 * s, hh * 0.12, 2.6 * s, 1.2 * s);
+
+    c.fillStyle = '#232632'; c.fillRect(-7 * s, -hh - 2 * s, 14 * s, 2.2 * s);
+    c.fillStyle = glow; c.beginPath(); c.arc(5 * s, -hh - 1 * s, 1.2 * s, 0, TAU); c.fill();
+  }
+
+  if (cut !== 0) {
+    const noseX = hw - 2 * s, noseY = -hh * 0.12;
+    c.fillStyle = '#0f1118';
+    c.beginPath();
+    c.roundRect ? c.roundRect(noseX - 6.5 * s, noseY - 3.2 * s, 9.5 * s, 6.4 * s, 1.8 * s)
+                 : c.rect(noseX - 6.5 * s, noseY - 3.2 * s, 9.5 * s, 6.4 * s);
+    c.fill(); c.strokeStyle = INK; c.lineWidth = 1.2; c.stroke();
+
+    for (const ox of [-3.8, 0.2]) {
+      c.fillStyle = '#1c2230'; c.beginPath(); c.arc(noseX + ox * s, noseY, 1.7 * s, 0, TAU); c.fill();
+      if (!flash) { c.fillStyle = glow; c.beginPath(); c.arc(noseX + ox * s + 0.4 * s, noseY - 0.3 * s, 0.7 * s, 0, TAU); c.fill(); }
+    }
+    if (!flash) { c.fillStyle = '#ff2b3d'; c.beginPath(); c.arc(noseX + 2.4 * s, noseY, 0.85 * s, 0, TAU); c.fill(); }
+  } else {
+    c.fillStyle = '#22080a'; c.fillRect(hw - 4 * s, -hh * 0.3, 5 * s, hh * 0.6);
+    c.fillStyle = glow; c.fillRect(hw - 2 * s, -1 * s, 2 * s, 2 * s);
+  }
+
+  for (const hx of [frontHipX, rearHipX]) {
+    c.beginPath(); c.arc(hx, hipY, 5.5 * s, 0, TAU);
+    c.fillStyle = primary; c.fill(); c.strokeStyle = INK; c.lineWidth = 1.8; c.stroke();
+    c.beginPath(); c.arc(hx, hipY, 2.8 * s, 0, TAU);
+    c.fillStyle = joint; c.fill(); c.strokeStyle = INK; c.lineWidth = 1; c.stroke();
+  }
+
+  drawOneLeg(legNearRear, rearHipX, hipY, false, false);
+  drawOneLeg(legNearFront, frontHipX, hipY, true, false);
+
+  c.restore();
+
+  if (cut === 0) {
+    const h = p[0];
+    c.save();
+    c.translate(h[0], h[1]);
+    c.rotate(headAng ?? 0);
+    c.fillStyle = '#0f1118';
+    c.fillRect(-4 * s, -3 * s, 8 * s, 6 * s);
+    c.strokeStyle = INK; c.lineWidth = 1.2; c.strokeRect(-4 * s, -3 * s, 8 * s, 6 * s);
+    c.fillStyle = glow; c.beginPath(); c.arc(0, 0, 1.8 * s, 0, TAU); c.fill();
+    c.restore();
+  }
+}
 
 // Cartoon rendering: ink outline per part, back limbs shaded darker, era-tinted lit edge (top-left).
 // capsule whose radius goes r0 -> r1 from A to B; ends are 3-point polygons (much cheaper than arcs,
@@ -1121,6 +1348,7 @@ function taper(c, A, B, r0, r1) {
 function drawRig(c, rig, p, look, s, f, flash, hat, cut = -1, headAng, opt = {}, lod = false) {
   if (rig === 'flyer') return drawFlyer(c, p, look, s, f, flash, cut, headAng, opt.fly, lod);
   if (opt.dino) return drawDino(c, p, look, s, f, flash, cut, headAng, opt.dino, lod);
+  if (opt.dog) return drawRobotDog(c, p, look, s, f, flash, cut, headAng, opt, lod);
   if (rig === 'human' && !opt.old && !GFX_LOW) return drawHuman(c, p, look, s, f, flash, hat, cut, headAng, opt, lod);
   const R = RIGS[rig], col = (k, back) => flash ? '#fff' : shade(look[k] || look.s, back ? 0.76 : 1);
   c.lineCap = 'round'; c.lineJoin = 'round';

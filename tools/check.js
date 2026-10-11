@@ -25,6 +25,7 @@ vm.runInContext(`
   poseHuman(o, 100, 440, 1, -1, 1.3, 'run', 'zombie', 0.5, 0); ok(o.length === 11 && finite(o), 'human pose');
   const rp = []; poseRaptor(rp, 100, 440, 1.2, -1, 2, 0, true); ok(rp.length === 10 && finite(rp), 'raptor pose');
   const f = []; poseFlyer(f, 100, 250, 1, -1, 3); ok(f.length === 5 && finite(f), 'flyer pose');
+  const dog = []; poseRobotDog(dog, 100, 440, 1.25, -1, 2, 0, true); ok(dog.length === 10 && finite(dog), 'robot dog pose');
   const h = []; poseHuman(h, 100, 440, 1, -1, 0.7, 'walk', 'aim', 0, 3);
   const r = makeRagdoll('human', h, {}, 1, -1, null, 300, -400);
   for (let i = 0; i < 1200; i++) stepRagdoll(r, x => x > 160 ? 420 : 440); // with a step up

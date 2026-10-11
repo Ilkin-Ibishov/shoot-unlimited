@@ -2,3 +2,6 @@
 .playwright-mcp/
 node_modules/
 tools/out/
+*.keystore
+*.jks
+.bubblewrap/

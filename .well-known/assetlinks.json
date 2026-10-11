@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.shootunlimited.app",
+      "sha256_cert_fingerprints": [
+        "BD:00:62:33:06:DC:3C:F8:8D:42:3A:12:BC:70:66:78:36:A4:DF:5B:61:39:8B:F6:D9:A2:33:A6:B2:1B:6A:BC"
+      ]
+    }
+  }
+]

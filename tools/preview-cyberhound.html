@@ -1,0 +1,405 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Cyber Hound Spot Robot-Dog Preview</title>
+<style>
+  body { margin: 0; background: #14121f; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+  h2 { margin: 0 0 6px; color: #ffd21f; font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
+  .subtitle { color: #8fa0b5; font-size: 13px; margin-bottom: 12px; }
+  canvas { border-radius: 14px; box-shadow: 0 12px 36px rgba(0,0,0,0.65); background: #222332; }
+  .controls { margin-top: 15px; display: flex; gap: 12px; }
+  button { padding: 9px 18px; border-radius: 8px; border: 0; background: #323854; color: #fff; font-weight: bold; cursor: pointer; transition: 0.15s; font-size: 13px; }
+  button:hover { background: #444e78; color: #39e1ff; }
+</style>
+</head>
+<body>
+<h2>🐕 Cyber Hound — Boston Dynamics Spot Robot-Dog</h2>
+<div class="subtitle">Başsız və quyruqsuz inteqrasiya edilmiş gövdə, Spot-un xarakterik X-ayaq duruşu və elastik yerişi</div>
+<canvas id="c" width="960" height="520"></canvas>
+<div class="controls">
+  <button id="btnToggleWalk">Yerimə: ON</button>
+  <button id="btnAttack">Hücum (Lunge)</button>
+  <button id="btnColor">Rəng: Cyber Yellow (Spot)</button>
+  <button id="btnSlow">Sürət: 1x</button>
+</div>
+
+<script>
+const cvs = document.getElementById('c'), c = cvs.getContext('2d');
+const TAU = Math.PI * 2;
+let t = 0, walking = true, act = 0, speed = 1, colorMode = 0;
+
+const INK = '#12141a';
+
+const THEMES = [
+  { name: 'Cyber Yellow (Spot)', primary: '#f6ba00', light: '#fedb40', dark: '#be8f00', under: '#161820', legBlack: '#14161d', joint: '#262a34', glow: '#39e1ff' },
+  { name: 'Neon Gunmetal',       primary: '#768396', light: '#99a9c2', dark: '#525d6e', under: '#151720', legBlack: '#12141a', joint: '#252a36', glow: '#39e1ff' }
+];
+
+function drawSpotDog(c, x, y, s, f, t, walking, act) {
+  c.save();
+  c.translate(x, y);
+  // f: facing direction (-1 faces left towards player, 1 faces right)
+  c.scale(f, 1);
+
+  const T = THEMES[colorMode];
+
+  // Authentic Spot proportions from reference image:
+  // - Body length ~ 56s, height ~ 13s (long and low)
+  // - Hip height above ground is tall: ~38s
+  // - Legs have 2 distinct segments:
+  //     1. Upper thigh (yellow/body color): 21s long, angled OUTWARD from body
+  //     2. Lower shin (black carbon-fiber): 25s long, angled INWARD back toward vertical with foot pad
+  const bodyLen = 54 * s;
+  const bodyH = 13.5 * s;
+  const upperLen = 22 * s;
+  const lowerLen = 25 * s;
+  const standH = 37 * s; // Ground clearance
+
+  // Trotting dynamics (Spot's diagonal gait)
+  const bounce = walking ? Math.abs(Math.sin(t * 6.5)) * 2.2 * s : 0;
+  const pitch = walking ? Math.cos(t * 6.5) * 0.035 : 0;
+  const lungeX = act > 0 ? Math.sin(act * Math.PI) * 16 * s : 0;
+  const lungeY = act > 0 ? Math.sin(act * Math.PI) * 8 * s : 0;
+
+  const cy = -standH + bounce + lungeY;
+  const cx = lungeX;
+
+  // Front hip is near the front; rear hip is near the back
+  const frontHipX = cx + bodyLen * 0.35;
+  const rearHipX  = cx - bodyLen * 0.35;
+  const hipY = cy + 2 * s;
+
+  // Gait: Diagonal trot (Front-Right + Rear-Left move together; Front-Left + Rear-Right move together)
+  const gs = 6.5;
+  const ga = walking ? 0.7 : 0;
+
+  function calcLeg(hx, hy, phase, isFront) {
+    const sw = Math.sin(t * gs + phase) * ga;
+    const lift = Math.max(0, Math.sin(t * gs + phase)) * 9 * s * (walking ? 1 : 0);
+
+    // EXACT SPOT SPLAY:
+    // When looking at Spot from the side:
+    // - Front upper leg reaches FORWARD (+x in local forward space)
+    // - Rear upper leg reaches BACKWARD (-x in local forward space)
+    const baseUpperAng = isFront ? 0.52 : -0.55;
+    const upperAng = baseUpperAng + sw * 0.40;
+
+    // Knee position:
+    const kx = hx + Math.sin(upperAng) * upperLen;
+    const ky = hy + Math.cos(upperAng) * upperLen;
+
+    // Lower leg bends back inward:
+    // - Front lower leg angles BACKWARD towards foot
+    // - Rear lower leg angles FORWARD towards foot
+    const baseLowerAng = isFront ? -0.45 : 0.42;
+    const lowerAng = baseLowerAng - sw * 0.35;
+
+    const footX = kx + Math.sin(lowerAng) * lowerLen;
+    const footY = Math.min(ky + Math.cos(lowerAng) * lowerLen - lift, 0);
+
+    return { kx, ky, footX, footY, upperAng, lowerAng };
+  }
+
+  const legFarRear   = calcLeg(rearHipX,  hipY, Math.PI, false);
+  const legFarFront  = calcLeg(frontHipX, hipY, 0,       true);
+  const legNearRear  = calcLeg(rearHipX,  hipY, 0,       false);
+  const legNearFront = calcLeg(frontHipX, hipY, Math.PI, true);
+
+  function drawLeg(L, hx, hy, isFront, back) {
+    const uCol = back ? T.dark : T.primary;
+    const dCol = back ? '#0e1016' : T.legBlack;
+    const jCol = back ? '#1c1f28' : T.joint;
+    const uW = 3.8 * s * (back ? 0.88 : 1.0);
+    const dW = 2.1 * s * (back ? 0.88 : 1.0);
+
+    // 1. LOWER LEG (Black carbon strut + rubber foot pad)
+    c.beginPath();
+    c.moveTo(L.kx, L.ky);
+    // Spot's subtle outward bow curve on the lower strut
+    const midX = (L.kx + L.footX) * 0.5 + (isFront ? 2.2 * s : -2.2 * s);
+    const midY = (L.ky + L.footY) * 0.5;
+    c.quadraticCurveTo(midX, midY, L.footX, L.footY);
+    c.strokeStyle = INK;
+    c.lineWidth = dW * 2 + 2;
+    c.lineCap = 'round';
+    c.stroke();
+    c.strokeStyle = dCol;
+    c.lineWidth = dW * 2;
+    c.stroke();
+
+    // Spot's distinctive triangular truss cutout near the knee
+    if (!back && s >= 1.2) {
+      c.strokeStyle = '#2d323f';
+      c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(L.kx, L.ky + 3*s);
+      c.lineTo(midX, midY);
+      c.stroke();
+    }
+
+    // Round rubber foot pad (Spot's spherical rubber foot)
+    c.beginPath();
+    c.arc(L.footX, L.footY - 1.2*s, 3.4 * s * (back ? 0.88 : 1), 0, TAU);
+    c.fillStyle = dCol;
+    c.fill();
+    c.strokeStyle = INK;
+    c.lineWidth = 1.4;
+    c.stroke();
+    if (!back) {
+      c.fillStyle = '#393e4d';
+      c.beginPath();
+      c.arc(L.footX, L.footY - 2.6*s, 1.3 * s, 0, TAU);
+      c.fill();
+    }
+
+    // 2. KNEE SERVO (Black round hinge)
+    c.beginPath();
+    c.arc(L.kx, L.ky, 3.4 * s * (back ? 0.88 : 1), 0, TAU);
+    c.fillStyle = jCol;
+    c.fill();
+    c.strokeStyle = INK;
+    c.lineWidth = 1.4;
+    c.stroke();
+
+    // 3. UPPER LEG (Sleek body-colored yellow armor)
+    c.beginPath();
+    c.moveTo(hx, hy);
+    c.lineTo(L.kx, L.ky);
+    c.strokeStyle = INK;
+    c.lineWidth = uW * 2 + 2.5;
+    c.lineCap = 'round';
+    c.stroke();
+    c.strokeStyle = uCol;
+    c.lineWidth = uW * 2;
+    c.stroke();
+
+    // Upper leg sunlight bevel highlight
+    if (!back) {
+      c.strokeStyle = T.light;
+      c.lineWidth = uW * 0.75;
+      c.beginPath();
+      c.moveTo(hx + (isFront ? 1 : -1) * 0.8 * s, hy + 2*s);
+      c.lineTo(L.kx + (isFront ? 1 : -1) * 0.8 * s, L.ky - 2*s);
+      c.stroke();
+    }
+
+    // Visible black wire looping over the hip joint (authentic Spot detail!)
+    if (!back) {
+      c.strokeStyle = '#12141a';
+      c.lineWidth = 1.2 * s;
+      c.beginPath();
+      c.moveTo(hx - 3.5*s, hy - 4*s);
+      c.quadraticCurveTo(hx, hy - 8.5*s, hx + 3.5*s, hy - 3.5*s);
+      c.stroke();
+    }
+  }
+
+  // --- DRAW ORDER: Far legs -> Chassis -> Near legs ---
+
+  // 1. Far legs (in shadow)
+  drawLeg(legFarRear,  rearHipX,  hipY, false, true);
+  drawLeg(legFarFront, frontHipX, hipY, true,  true);
+
+  // 2. MAIN CHASSIS (Spot's rectangular capsule body)
+  c.save();
+  c.translate(cx, cy);
+  c.rotate(pitch);
+
+  const hw = bodyLen * 0.5;
+  const hh = bodyH * 0.5;
+
+  // Dark under-belly (battery tray / chassis core)
+  c.beginPath();
+  c.roundRect ? c.roundRect(-hw + 3*s, -hh + 3*s, bodyLen - 6*s, bodyH - 2*s, 3*s)
+               : c.rect(-hw + 3*s, -hh + 3*s, bodyLen - 6*s, bodyH - 2*s);
+  c.fillStyle = T.under;
+  c.fill();
+
+  // Main yellow body shell (streamlined front and rear chamfers)
+  c.beginPath();
+  c.moveTo(-hw + 7*s, -hh);                  // top rear
+  c.lineTo(hw - 5*s, -hh);                   // top front
+  c.lineTo(hw + 2*s, -hh + 3.5*s);           // front nose bevel
+  c.lineTo(hw + 2*s, hh - 3.5*s);            // front nose bottom
+  c.lineTo(hw - 5*s, hh);                    // bottom front
+  c.lineTo(-hw + 5*s, hh);                   // bottom rear
+  c.lineTo(-hw - 1.5*s, hh - 3.5*s);         // rear bottom
+  c.lineTo(-hw - 1.5*s, -hh + 4*s);          // rear top
+  c.closePath();
+  c.fillStyle = T.primary;
+  c.strokeStyle = INK;
+  c.lineWidth = 2.4;
+  c.fill();
+  c.stroke();
+
+  // Top sunlit edge (light yellow bevel)
+  c.fillStyle = T.light;
+  c.beginPath();
+  c.moveTo(-hw + 7*s, -hh + 1*s);
+  c.lineTo(hw - 5*s, -hh + 1*s);
+  c.lineTo(hw - 6*s, -hh + 3.4*s);
+  c.lineTo(-hw + 6*s, -hh + 3.4*s);
+  c.closePath();
+  c.fill();
+
+  // Spot's distinctive black recessed side waistband / branding strip
+  c.fillStyle = T.under;
+  c.beginPath();
+  c.moveTo(-hw + 11*s, -hh * 0.12);
+  c.lineTo(hw - 9*s, -hh * 0.12);
+  c.lineTo(hw - 11*s, hh * 0.48);
+  c.lineTo(-hw + 9*s, hh * 0.48);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = INK;
+  c.lineWidth = 1.2;
+  c.stroke();
+
+  // "Spot" style graphic text / lines in the waist band
+  if (s >= 1.2) {
+    c.fillStyle = 'rgba(255,255,255,0.45)';
+    c.font = `bold ${Math.round(4.5 * s)}px sans-serif`;
+    c.fillText('SPOT', -4 * s, hh * 0.32);
+  }
+
+  // FRONT INTEGRATED SENSOR ARRAY (Spot's front stereo cameras - NO SEPARATE HEAD!)
+  const noseX = hw - 2*s;
+  const noseY = -hh * 0.12;
+
+  // Front camera cluster bezel
+  c.fillStyle = '#0f1118';
+  c.beginPath();
+  c.roundRect ? c.roundRect(noseX - 6.5*s, noseY - 3.2*s, 9.5*s, 6.4*s, 1.8*s)
+               : c.rect(noseX - 6.5*s, noseY - 3.2*s, 9.5*s, 6.4*s);
+  c.fill();
+  c.strokeStyle = INK;
+  c.lineWidth = 1.2;
+  c.stroke();
+
+  // Dual stereo optical lenses
+  for (const ox of [-3.8, 0.2]) {
+    c.fillStyle = '#1c2230';
+    c.beginPath();
+    c.arc(noseX + ox*s, noseY, 1.7*s, 0, TAU);
+    c.fill();
+    // Cyan sensor glare
+    c.fillStyle = T.glow;
+    c.beginPath();
+    c.arc(noseX + ox*s + 0.4*s, noseY - 0.3*s, 0.7*s, 0, TAU);
+    c.fill();
+  }
+
+  // Red LIDAR / proximity laser diode
+  c.fillStyle = '#ff2b3d';
+  c.beginPath();
+  c.arc(noseX + 2.4*s, noseY, 0.85*s, 0, TAU);
+  c.fill();
+
+  // Spot rear cooling vents
+  c.fillStyle = '#12141a';
+  for (let i = 0; i < 4; i++) {
+    c.fillRect(-hw + 14*s + i * 4.5*s, hh * 0.12, 2.6*s, 1.2*s);
+  }
+
+  // Top mount handle rail (where payload / Spot arm mounts)
+  c.fillStyle = '#232632';
+  c.fillRect(-7*s, -hh - 2*s, 14*s, 2.2*s);
+  // Status LED on top
+  const ledPulse = Math.sin(t * 8) > 0;
+  c.fillStyle = act > 0 ? '#ff2b3d' : (ledPulse ? T.glow : '#1a4455');
+  c.beginPath();
+  c.arc(5*s, -hh - 1*s, 1.2*s, 0, TAU);
+  c.fill();
+
+  // Shoulder fairing caps (rounded hubs where legs connect to the body)
+  for (const hx of [frontHipX - cx, rearHipX - cx]) {
+    c.beginPath();
+    c.arc(hx, hipY - cy, 5.5*s, 0, TAU);
+    c.fillStyle = T.primary;
+    c.fill();
+    c.strokeStyle = INK;
+    c.lineWidth = 1.8;
+    c.stroke();
+    // Inner dark servo ring
+    c.beginPath();
+    c.arc(hx, hipY - cy, 2.8*s, 0, TAU);
+    c.fillStyle = T.joint;
+    c.fill();
+    c.strokeStyle = INK;
+    c.lineWidth = 1;
+    c.stroke();
+  }
+
+  c.restore();
+
+  // 3. Near legs (in front of body)
+  drawLeg(legNearRear,  rearHipX,  hipY, false, false);
+  drawLeg(legNearFront, frontHipX, hipY, true,  false);
+
+  c.restore();
+}
+
+// Controls
+document.getElementById('btnAttack').onclick = () => { act = 1; };
+const btnWalk = document.getElementById('btnToggleWalk');
+btnWalk.onclick = () => {
+  walking = !walking;
+  btnWalk.textContent = 'Yerimə: ' + (walking ? 'ON' : 'OFF');
+};
+const btnColor = document.getElementById('btnColor');
+btnColor.onclick = () => {
+  colorMode = (colorMode + 1) % THEMES.length;
+  btnColor.textContent = 'Rəng: ' + THEMES[colorMode].name;
+};
+const btnSlow = document.getElementById('btnSlow');
+btnSlow.onclick = () => {
+  speed = speed === 1 ? 0.3 : 1;
+  btnSlow.textContent = 'Sürət: ' + speed + 'x';
+};
+
+function frame() {
+  requestAnimationFrame(frame);
+  const dt = 0.016 * speed;
+  t += dt;
+  if (act > 0) act = Math.max(0, act - dt * 0.85);
+
+  c.fillStyle = '#222332';
+  c.fillRect(0, 0, 960, 520);
+
+  const gY = 410;
+  c.fillStyle = '#34384c';
+  c.fillRect(0, gY, 960, 110);
+  c.fillStyle = '#4c5270';
+  c.fillRect(0, gY, 960, 3);
+
+  // Grid
+  c.strokeStyle = 'rgba(255,255,255,0.04)';
+  c.lineWidth = 1;
+  for (let i = 0; i < 20; i++) {
+    const gx = (i * 50 + t * 25) % 1010 - 25;
+    c.beginPath(); c.moveTo(gx, gY + 3); c.lineTo(gx, 520); c.stroke();
+  }
+
+  // Draw 3 scales
+  drawSpotDog(c, 180, gY, 1.0, -1, t, walking, act);
+  c.fillStyle = '#8a94a6'; c.font = 'bold 11px monospace'; c.fillText('s = 1.0', 145, gY + 30);
+
+  drawSpotDog(c, 470, gY, 1.4, -1, t, walking, act);
+  c.fillStyle = '#ffd21f'; c.font = 'bold 12px monospace'; c.fillText('s = 1.4 (Oyun miqyası)', 395, gY + 30);
+
+  drawSpotDog(c, 780, gY, 1.9, -1, t, walking, act);
+  c.fillStyle = '#39e1ff'; c.font = 'bold 12px monospace'; c.fillText('s = 1.9 (Detallı görünüş)', 700, gY + 30);
+
+  // Status HUD
+  c.fillStyle = 'rgba(0,0,0,0.7)';
+  c.fillRect(16, 16, 330, 54);
+  c.fillStyle = '#ffd21f'; c.font = 'bold 13px monospace';
+  c.fillText(`SPOT ROBOT-DOG (${THEMES[colorMode].name})`, 26, 36);
+  c.fillStyle = '#fff'; c.font = '12px monospace';
+  c.fillText(`${walking ? 'TROT (Diaqonal Addım)' : 'DAYANMA'} | ZƏRBƏ: ${act > 0 ? (act * 100 | 0) + '%' : 'HAZIR'}`, 26, 54);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

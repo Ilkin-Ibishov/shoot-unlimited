@@ -212,7 +212,7 @@ const ERAS = [
     sky: ['#1a1036', '#4a2a6b'], layers: ['#3a2a5e', '#271c47'], ground: '#3b3f58', line: '#50568a', edge: '#6b73c0', win: 'rgba(57,225,255,0.35)',
     foes: {
       walker:   { name: 'Droid',       deco: 'robot', arms: 'zombie', look: { k: '#aab4c4', s: '#6b7a90', p: '#4a5566' }, hat: 'visor', blood: '#39e1ff' },
-      runner:   { name: 'Cyber Hound', rig: 'raptor', look: { k: '#8a94a6', s: '#5a6478', p: '#3a4254' }, blood: '#39e1ff' },
+      runner:   { name: 'Cyber Hound', rig: 'raptor', dog: 'spot', scale: 1.25, look: { k: '#768396', s: '#768396', p: '#151720' }, blood: '#39e1ff' },
       flyer:    { name: 'Drone',       rig: 'flyer', fly: 'drone', look: { k: '#39e1ff', s: '#4a5566', a: '#2a3140' }, blood: '#39e1ff' },
       ranged:   { name: 'Laser Trooper', deco: 'robot', arms: 'aim', look: { k: '#dfe6ee', s: '#e0e6ee', p: '#3a4254' }, hat: 'visor', held: 'gun', proj: 'laser', blood: '#39e1ff' },
       exploder: { name: 'Kamikaze Bot', deco: 'robot', legs: 'run', look: { k: '#ff5a5a', s: '#4a5566', p: '#2a3140' }, hat: 'visor', held: 'bomb', blood: '#39e1ff' },
